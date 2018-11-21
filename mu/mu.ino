@@ -15,7 +15,7 @@ RH_RF95 rf95(RFM95_CS, RFM95_INT);
 
 void setup() {
   pinMode(RFM95_RST, OUTPUT);
-  digitalWrite(RFM_RST, HIGH);
+  digitalWrite(RFM95_RST, HIGH);
 
   // Start serial connection
   Serial.begin(9600);
@@ -35,12 +35,12 @@ void setup() {
   Serial.println("[RF] Init Succeded");
 
   // RF set frequency
-  if (!rf95.setFrequency(RF95_FREQ)) {
+  if (!rf95.setFrequency(RFM95_FREQ)) {
     Serial.println("[RF] Frequency set failed");
     while (1);
   }
   Serial.print("[RF] Frequency set to: ");
-  Serial.println(RF95_FREQ);
+  Serial.println(RFM95_FREQ);
 
   // RF set power
   rf95.setTxPower(23, false);
