@@ -8,16 +8,16 @@ const unsigned short int RH_ADDRESS_ALPHA = 1;
 const unsigned short int RH_ADDRESS_MU = 2;
 const unsigned short int RH_ADDRESS_BETA = 3;
 const unsigned short int RH_ADDRESS_RHO = 4;
-const unsigned short int RH_ADDRESS_DELTA= 5;
+const unsigned short int RH_ADDRESS_DELTA = 5;
 
-const unsigned short int RH_RST = 2;
-const unsigned short int RH_CS = 4;
-const unsigned short int RH_INT = 3;
+const unsigned short int RH_RST = 10;
+const unsigned short int RH_CS = 12;
+const unsigned short int RH_INT = 6;
 const float RH_FREQ = 868.0;
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
-RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_DELTA);
+RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_BETA);
 
 
 
@@ -25,22 +25,22 @@ RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_DELTA);
 
 
 // MAIN PROGRAMME FUNCTIONS
-void setup(){
+void setup() {
   // --------------- Starting serial @ 115200 -------------------- //
   Serial.begin(115200);
-  while(!Serial){
+  while (!Serial) {
     delay(1);
   }
 
   // --------------- Initializing RH_Datagram -------------------- //
-  if(!RH_Datagram.init()){
+  if (!RH_Datagram.init()) {
     Serial.print("RH_Datagram INIT failed (11)");
     exit(11);
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
 
-  if(!RH_Driver.setFrequency(RH_FREQ)){
+  if (!RH_Driver.setFrequency(RH_FREQ)) {
     Serial.print("RH_Driver setFrequency failed (12)");
     exit(12);
   }
@@ -56,12 +56,12 @@ void setup(){
   // --------------- Setting duration timeout for RH_Datagram -------------------- //
 
   RH_Datagram.setTimeout(200);
-  
+
 }
 
-void loop(){
+void loop() {
 
-  
+
 
   uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
   uint8_t LEN = sizeof(BUF);
@@ -69,19 +69,19 @@ void loop(){
   uint8_t TO_ADDRESS;
 
 
-  if(RH_Datagram.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)){
+  if (RH_Datagram.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)) {
     // valid message received
     Serial.print("0x");
     Serial.print(FROM_ADDRESS, HEX);
     Serial.print(": ");
     Serial.println((char*) BUF);
-    
-  }
-  
 
-  
-  
-  
-    
-  
+  }
+
+
+
+
+
+
+
 }
