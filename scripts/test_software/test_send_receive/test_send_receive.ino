@@ -18,7 +18,7 @@ const float RH_FREQ = 868.0;
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
-RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_RHO);
+RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_ALPHA);
 
 
 // BUFFERS
@@ -56,7 +56,7 @@ void setup(){
 
   // --------------- Setting #retries for RH_Datagram -------------------- //
 
-  RH_Datagram.setRetries(3);
+  RH_Datagram.setRetries(0);
 
   // --------------- Setting duration timeout for RH_Datagram -------------------- //
 
@@ -89,9 +89,9 @@ void loop(){
 
   if(Serial.available()){
     reader = Serial.readString();
-    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
+    //RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_BETA);
-    //RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_RHO);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_RHO);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_MU);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_DELTA);
 
