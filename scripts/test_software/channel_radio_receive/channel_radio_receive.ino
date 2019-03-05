@@ -4,17 +4,16 @@
 #include <RH_RF95.h>
 
 // CONSTANTS
-const unsigned short int RH_LOCAL_ADDRESS = 3;
-const unsigned short int RH_REMOTE_ADDRESS_ALPHA = 1;
+const unsigned short int RH_LOCAL_ADDRESS = 5;
+const unsigned short int RH_REMOTE_ADDRESS_BETA = 3;
 const unsigned short int RH_REMOTE_ADDRESS_MU = 2;
 const unsigned short int RH_REMOTE_ADDRESS_RHO = 4;
-const unsigned short int RH_REMOTE_ADDRESS_DELTA = 5;
+const unsigned short int RH_REMOTE_ADDRESS_ALPHA= 1;
 
-const unsigned short int RH_RST = 10;
-const unsigned short int RH_CS = 12;
-const unsigned short int RH_INT = 6;
+const unsigned short int RH_RST = 2;
+const unsigned short int RH_CS = 4;
+const unsigned short int RH_INT = 3;
 const float RH_FREQ = 868.0;
-
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
@@ -62,10 +61,13 @@ void setup(){
 
 void loop(){
 
-  uint8_t BUF[10];
+  
+
+  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
   uint8_t LEN = sizeof(BUF);
   uint8_t FROM_ADDRESS;
   uint8_t TO_ADDRESS;
+
 
   if(RH_Datagram.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)){
     // valid message received
@@ -76,8 +78,10 @@ void loop(){
     
   }
   
+
+  
+  
   
     
   
 }
-
