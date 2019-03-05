@@ -18,7 +18,7 @@ const float RH_FREQ = 868.0;
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
-RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_ALPHA);
+RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_RHO);
 
 
 // BUFFERS
@@ -89,11 +89,11 @@ void loop(){
 
   if(Serial.available()){
     reader = Serial.readString();
-    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
-    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_ADDRESS_BETA);
-    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_ADDRESS_RHO);
-    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_ADDRESS_MU);
-    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_ADDRESS_DELTA);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_BETA);
+    //RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_RHO);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_MU);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_DELTA);
 
     Serial.print("Sent: " + reader + " !sizeof=");
     Serial.println(reader.length());
