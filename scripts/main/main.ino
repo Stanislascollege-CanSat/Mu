@@ -2,38 +2,46 @@
   Mu MotherCan MCU software.
 ****************************/
 
+// LIBRARIES
 #include <Wire.h>
 #include <SPI.h>
+#include <RHReliableDatagram.h>
+#include <RH_RF95.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
 #include <Adafruit_GPS.h>
 
-/******************
-  Pin definitions
-******************/
+// PIN DEFINITIONS
+const unsigned short int RF_RST = 10;
+const unsigned short int RF_CS = 12;
+const unsigned short int RF_INT = 6;
+const unsigned short int BUZZ = 11;
+const unsigned short int A_BAT = 9;
 
-#define RF_RST 10
-#define RF_CS 12
-#define RF_INT 6
-#define BUZZ 11
-#define A_BAT 9
-#define MCU_LED LED_BUILTIN
+const string MCU_LED = LED_BUILTIN;
 
-// Create singleton instances.
-Adafruit_GPS GPS(&Serial1);
+// CONSTANTS
+const unsigned short int RF_ADDRESS_ALPHA = 1;
+const unsigned short int RF_ADDRESS_MU = 2;
+const unsigned short int RF_ADDRESS_BETA = 3;
+const unsigned short int RF_ADDRESS_RHO = 4;
+const unsigned short int RF_ADDRESS_DELTA = 5;
 
-#define GPSECHO  true
+const float RF_FREQ = 868.0;
 
-// this keeps track of whether we're using the interrupt
-// off by default!
-boolean usingInterrupt = false;
-void useInterrupt(boolean);
+// OBJECT DECLARATION
+RH_RF95 RF_Driver(RF_CS, RF_INT);
+RHReliableDatagram RF_Datagram(RF_Driver, RF_ADDRESS_BETA);
+
+// BUFFERS
+String reader;
+
 
 void setup() {
   // Initialize MCU_LED as an output.
   pinMode(LED_BUILTIN, OUTPUT);
 
-  // Start up charm.
+  // --------------- Startup charm -------------------- //
   tone(BUZZ, 1000);
   digitalWrite(MCU_LED, HIGH);
   delay(500);
@@ -46,6 +54,16 @@ void setup() {
   noTone(BUZZ);
   digitalWrite(MCU_LED, LOW);
 
-  Serial.begin(115200);
+  // --------------- Starting serial @ 115200 -------------------- //
+  SerialUSB.begin(115200);
+  while(!Serial) {}
+  delay(10);
+
+  // --------------- Initializing RF_Datagram -------------------- //
+  if(!RF_Datagram.init()){
+    SerialUSB.print("RF_Datagram INIT failed (11)");
+    while(1);
+    //exit(11);
+  }
 
 }
