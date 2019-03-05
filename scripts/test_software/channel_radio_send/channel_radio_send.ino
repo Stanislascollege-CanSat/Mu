@@ -4,11 +4,11 @@
 #include <RH_RF95.h>
 
 // CONSTANTS
-const unsigned short int RH_LOCAL_ADDRESS = 1;
-const unsigned short int RH_REMOTE_ADDRESS_MU = 2;
-const unsigned short int RH_REMOTE_ADDRESS_BETA = 3;
-const unsigned short int RH_REMOTE_ADDRESS_RHO = 4;
-const unsigned short int RH_REMOTE_ADDRESS_DELTA = 5;
+const unsigned short int RH_ADDRESS_ALPHA = 1;
+const unsigned short int RH_ADDRESS_MU = 2;
+const unsigned short int RH_ADDRESS_BETA = 3;
+const unsigned short int RH_ADDRESS_RHO = 4;
+const unsigned short int RH_ADDRESS_DELTA = 5;
 
 const unsigned short int RH_RST = 2;
 const unsigned short int RH_CS = 4;
@@ -18,7 +18,11 @@ const float RH_FREQ = 868.0;
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
-RHReliableDatagram RH_Datagram(RH_Driver, RH_LOCAL_ADDRESS);
+RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_ALPHA);
+
+
+// BUFFERS
+String reader;
 
 
 
@@ -61,6 +65,9 @@ void setup(){
   RH_Datagram.setTimeout(200);
 
   Serial.println("SETUP PASSED");
+
+
+  reader = "";
   
 }
 
@@ -73,8 +80,13 @@ void loop(){
   uint8_t TO_ADDRESS;
 
   if(Serial.available()){
-    const uint8_t* data = reinterpret_cast<const uint8_t*>(Serial.readString().c_str());
-    RH_Datagram.sendtoWait(data, sizeof(data), RH_REMOTE_ADDRESS_BETA);
+    reader = Serial.readString();
+    
+    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_REMOTE_ADDRESS_BETA);
+    RH_Datagram.sendtoWait(reader.c_str(), reader.length(), RH_REMOTE_ADDRESS_DELTA);
+
+    Serial.print("Sent: " + reader + " !sizeof=");
+    Serial.println(reader.length());
   }
   
   
