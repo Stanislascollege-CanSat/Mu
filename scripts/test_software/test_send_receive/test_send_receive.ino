@@ -10,15 +10,15 @@ const unsigned short int RH_ADDRESS_BETA = 3;
 const unsigned short int RH_ADDRESS_RHO = 4;
 const unsigned short int RH_ADDRESS_DELTA = 5;
 
-const unsigned short int RH_RST = 2;
-const unsigned short int RH_CS = 4;
-const unsigned short int RH_INT = 3;
+const unsigned short int RH_RST = 10;
+const unsigned short int RH_CS = 12;
+const unsigned short int RH_INT = 6;
 const float RH_FREQ = 868.0;
 
 
 // OBJECT DECLARATION
 RH_RF95 RH_Driver(RH_CS, RH_INT);
-RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_ALPHA);
+RHReliableDatagram RH_Datagram(RH_Driver, RH_ADDRESS_BETA);
 
 
 // BUFFERS
@@ -33,7 +33,10 @@ String reader;
 void setup(){
   // --------------- Starting serial @ 115200 -------------------- //
   Serial.begin(115200);
-  delay(1000);
+  //delay(1000);
+  while(!Serial){
+    delay(1);
+  }
 
   // --------------- Initializing RH_Datagram -------------------- //
   if(!RH_Datagram.init()){
@@ -89,8 +92,8 @@ void loop(){
 
   if(Serial.available()){
     reader = Serial.readString();
-    //RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
-    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_BETA);
+    RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_ALPHA);
+    //RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_BETA);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_RHO);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_MU);
     RH_Datagram.sendtoWait((uint8_t*)reader.c_str(), reader.length(), RH_ADDRESS_DELTA);
