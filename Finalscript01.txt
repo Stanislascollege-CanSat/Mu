@@ -94,8 +94,6 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
-
-
 //
 // SETUP FUNCTION
 //
@@ -104,7 +102,6 @@ void setup(){
   Serial.begin(115200);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
-
   pwm.setPWMFreq(60);
 
   // open hull
@@ -190,11 +187,6 @@ void setup(){
   if(Sensor_Motion.begin() < 0){
 
   }
-
-
-
-
-
 
   // --------------- Confirming boot -------------------- //
 
