@@ -33,7 +33,10 @@ String reader;
 void setup(){
   // --------------- Starting serial @ 115200 -------------------- //
   Serial.begin(115200);
-  delay(1000);
+  //delay(1000);
+  while(!Serial){
+    delay(1);
+  }
 
   // --------------- Initializing RH_Datagram -------------------- //
   if(!RH_Datagram.init()){
