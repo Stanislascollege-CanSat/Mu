@@ -83,7 +83,6 @@ int GPS_hour;
 int GPS_minute;
 int GPS_second;
 int GPS_millisecond;
-String GPS_timestring;
 int GPS_day;
 int GPS_month;
 int GPS_year;
@@ -161,12 +160,12 @@ void setup(){
 
   // fram disk
   if(!FRAMDisk.begin()){
-    
+
   }
-  
+
   // Sensor_BMP
   if(!Sensor_BMP.begin()){
-    
+
   }
 
   // Sensor_SGP30
@@ -178,7 +177,7 @@ void setup(){
 
   // Sensor_Si7021
   if(!Sensor_Si7021.begin()){
-    
+
   }
 
   // Adafruit_GPS
@@ -189,16 +188,16 @@ void setup(){
 
   // Motion sensor (IMU)
   if(Sensor_Motion.begin() < 0){
-    
-  }
-  
 
-  
+  }
+
+
+
 
 
 
   // --------------- Confirming boot -------------------- //
-  
+
   String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
 //  for(int i = 100; i < 4000; i += 5){
@@ -223,35 +222,30 @@ uint32_t getAbsoluteHumidity(float temperature, float humidity) {
 //
 
 void loop(){
-  Sensor_GPS.read();
-  if (Sensor_GPS.newNMEAreceived()) {
-    // a tricky thing here is if we print the NMEA sentence, or data
-    // we end up not listening and catching other sentences!
-    // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
-    if (!Sensor_GPS.parse(Sensor_GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
-      return; // we can fail to parse a sentence in which case we should just wait for another
-  }
-  
-  if(int(millis()) % 500 == 0){
+  if(int(millis()) % 2000 == 0){
     // READING SENSORS
     Sensor_Motion.readSensor();
-  
 
-    
-  
-    if(Sensor_SGP30.IAQmeasure()){
-      
+    Sensor_GPS.read();
+
+    if (Sensor_GPS.newNMEAreceived()) {
+      // a tricky thing here is if we print the NMEA sentence, or data
+      // we end up not listening and catching other sentences!
+      // so be very wary if using OUTPUT_ALLDATA and trytng to print out data
+      if (!Sensor_GPS.parse(Sensor_GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
+        return; // we can fail to parse a sentence in which case we should just wait for another
     }
-  
+
+    if(Sensor_SGP30.IAQmeasure()){
+
+    }
+
     // READING SENSOR DATA
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
     BMP_altitude = Sensor_BMP.readAltitude(992);
     Si7021_humidity = Sensor_Si7021.readHumidity();
     Si7021_temperature = Sensor_Si7021.readTemperature();
-    // CALIBRATING SGP30
-    Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
-    //
     SGP30_TVOC = Sensor_SGP30.TVOC;
     SGP30_CO2 = Sensor_SGP30.eCO2;
     IMU_Acc_X = Sensor_Motion.getAccelX_mss();
@@ -268,81 +262,82 @@ void loop(){
     GPS_minute = Sensor_GPS.minute;
     GPS_second = Sensor_GPS.seconds;
     GPS_millisecond = Sensor_GPS.milliseconds;
-    GPS_timestring = ((String(GPS_hour).length() < 2) ? "0" + String(GPS_hour) : String(GPS_hour));
-    GPS_timestring += ((String(GPS_minute).length() < 2) ? "0" + String(GPS_minute) : String(GPS_minute));
-    GPS_timestring += ((String(GPS_second).length() < 2) ? "0" + String(GPS_second) : String(GPS_second));
     GPS_day = Sensor_GPS.day;
     GPS_month = Sensor_GPS.month;
     GPS_year = Sensor_GPS.year;
     GPS_fix = Sensor_GPS.fix;
-    GPS_latitude = (GPS_fix ? Sensor_GPS.latitudeDegrees : 0);
-    GPS_longitude = (GPS_fix ? Sensor_GPS.longitudeDegrees : 0);
-    GPS_speed = (GPS_fix ? Sensor_GPS.speed : 0);
-    GPS_angle = (GPS_fix ? Sensor_GPS.angle : 0);
-    GPS_altitude = (GPS_fix ? Sensor_GPS.altitude : 0);
-    GPS_satellites = (GPS_fix ? Sensor_GPS.satellites : 0);
+    GPS_latitude = Sensor_GPS.latitude;
+    GPS_longitude = Sensor_GPS.longitude;
+    GPS_speed = Sensor_GPS.speed;
+    GPS_angle = Sensor_GPS.angle;
+    GPS_altitude = Sensor_GPS.altitude;
+    GPS_satellites = Sensor_GPS.satellites;
 
-//    Serial.print("temp:"); Serial.println(BMP_temperature);
-//    Serial.print("pres:"); Serial.println(BMP_airpressure);
-//    Serial.print("alti:"); Serial.println(BMP_altitude);
-//    Serial.print("humi:"); Serial.println(Si7021_humidity);
-//    Serial.print("temp:"); Serial.println(Si7021_temperature);
-//    Serial.print("tvoc:"); Serial.println(SGP30_TVOC);
-//    Serial.print("eco2:"); Serial.println(SGP30_CO2);
-//    Serial.print("accx:"); Serial.println(IMU_Acc_X);
-//    Serial.print("accy:"); Serial.println(IMU_Acc_Y);
-//    Serial.print("accz:"); Serial.println(IMU_Acc_Z);
-//    Serial.print("gyrx:"); Serial.println(IMU_Gyro_X);
-//    Serial.print("gyry:"); Serial.println(IMU_Gyro_Y);
-//    Serial.print("gyrz:"); Serial.println(IMU_Gyro_Z);
-//    Serial.print("comx:"); Serial.println(IMU_Mag_X);
-//    Serial.print("comy:"); Serial.println(IMU_Mag_Y);
-//    Serial.print("comz:"); Serial.println(IMU_Mag_Z);
-//    Serial.print("hour:"); Serial.println(GPS_hour);
-//    Serial.print("mins:"); Serial.println(GPS_minute);
-//    Serial.print("secs:"); Serial.println(GPS_second);
-//    Serial.print("mils:"); Serial.println(GPS_millisecond);
-//    Serial.print("day :"); Serial.println(GPS_day);
-//    Serial.print("mont:"); Serial.println(GPS_month);
-//    Serial.print("year:"); Serial.println(GPS_year);
-//    Serial.print("fix :"); Serial.println(GPS_fix);
-//    Serial.print("lati:"); Serial.println(GPS_latitude, 4);
-//    Serial.print("long:"); Serial.println(GPS_longitude, 4);
-//    Serial.print("sped:"); Serial.println(GPS_speed);
-//    Serial.print("angl:"); Serial.println(GPS_angle);
-//    Serial.print("alti:"); Serial.println(GPS_altitude);
-//    Serial.print("stli:"); Serial.println(GPS_satellites);
-  
+    Serial.print("temp:"); Serial.println(BMP_temperature);
+    Serial.print("pres:"); Serial.println(BMP_airpressure);
+    Serial.print("alti:"); Serial.println(BMP_altitude);
+    Serial.print("humi:"); Serial.println(Si7021_humidity);
+    Serial.print("temp:"); Serial.println(Si7021_temperature);
+    Serial.print("tvoc:"); Serial.println(SGP30_TVOC);
+    Serial.print("eco2:"); Serial.println(SGP30_CO2);
+    Serial.print("accx:"); Serial.println(IMU_Acc_X);
+    Serial.print("accy:"); Serial.println(IMU_Acc_Y);
+    Serial.print("accz:"); Serial.println(IMU_Acc_Z);
+    Serial.print("gyrx:"); Serial.println(IMU_Gyro_X);
+    Serial.print("gyry:"); Serial.println(IMU_Gyro_Y);
+    Serial.print("gyrz:"); Serial.println(IMU_Gyro_Z);
+    Serial.print("comx:"); Serial.println(IMU_Mag_X);
+    Serial.print("comy:"); Serial.println(IMU_Mag_Y);
+    Serial.print("comz:"); Serial.println(IMU_Mag_Z);
+    Serial.print("hour:"); Serial.println(GPS_hour);
+    Serial.print("mins:"); Serial.println(GPS_minute);
+    Serial.print("secs:"); Serial.println(GPS_second);
+    Serial.print("mils:"); Serial.println(GPS_millisecond);
+    Serial.print("day :"); Serial.println(GPS_day);
+    Serial.print("mont:"); Serial.println(GPS_month);
+    Serial.print("year:"); Serial.println(GPS_year);
+    Serial.print("fix :"); Serial.println(GPS_fix);
+    Serial.print("lati:"); Serial.println(GPS_latitude);
+    Serial.print("long:"); Serial.println(GPS_longitude);
+    Serial.print("sped:"); Serial.println(GPS_speed);
+    Serial.print("angl:"); Serial.println(GPS_angle);
+    Serial.print("alti:"); Serial.println(GPS_altitude);
+    Serial.print("stli:"); Serial.println(GPS_satellites);
+
     // WORKING WITH THE DATA
-    String dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
-    dataPointRH += "GT:" + GPS_timestring + ";";
-    dataPointRH += "TS:" + String(millis() - startupTime) + ";";
-    dataPointRH += "GA:" + String(GPS_latitude, 4) + ";";
-    dataPointRH += "GO:" + String(GPS_longitude, 4) + ";";
-    dataPointRH += "GH:" + String(GPS_altitude) + ";";
-    dataPointRH += "GS:" + String(GPS_speed) + ";";
-    dataPointRH += "GV:" + String(GPS_angle) + ";";
-    dataPointRH += "G3:" + String(GPS_fix) + ";";
-    dataPointRH += "GN:" + String(GPS_satellites) + ";";
-    dataPointRH += "AP:" + String(BMP_airpressure) + ";";
-    dataPointRH += "AT:" + String(BMP_temperature) + ";";
-    dataPointRH += "AL:" + String(BMP_altitude) + ";";
-    dataPointRH += "HM:" + String(Si7021_humidity) + ";";
-    dataPointRH += "AX:" + String(IMU_Acc_X) + ";";
-    dataPointRH += "AY:" + String(IMU_Acc_Y) + ";";
-    dataPointRH += "AZ:" + String(IMU_Acc_Z) + ";";
-    dataPointRH += "GX:" + String(IMU_Gyro_X) + ";";
-    dataPointRH += "GY:" + String(IMU_Gyro_Y) + ";";
-    dataPointRH += "GZ:" + String(IMU_Gyro_Z) + ";";
-    dataPointRH += "CX:" + String(IMU_Mag_X) + ";";
-    dataPointRH += "CY:" + String(IMU_Mag_Y) + ";";
-    dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
-    dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
-    dataPointRH += "O2:" + String(SGP30_CO2) + ";";
-    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*0.064453125) + ";";
-    dataPointRH += "}";
+//    String dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
+//    dataPointRH += "GT:" + String() + ";";
+//    dataPointRH += "TS:" + String() + ";";
+//    dataPointRH += "GA:" + String() + ";";
+//    dataPointRH += "GO:" + String() + ";";
+//    dataPointRH += "GH:" + String() + ";";
+//    dataPointRH += "GS:" + String() + ";";
+//    dataPointRH += "GV:" + String() + ";";
+//    dataPointRH += "G3:" + String() + ";";
+//    dataPointRH += "GN:" + String() + ";";
+//    dataPointRH += "AP:" + String() + ";";
+//    dataPointRH += "AT:" + String() + ";";
+//    dataPointRH += "AL:" + String() + ";";
+//    dataPointRH += "HM:" + String() + ";";
+//    dataPointRH += "AX:" + String() + ";";
+//    dataPointRH += "AY:" + String() + ";";
+//    dataPointRH += "AZ:" + String() + ";";
+//    dataPointRH += "GX:" + String() + ";";
+//    dataPointRH += "GY:" + String() + ";";
+//    dataPointRH += "GZ:" + String() + ";";
+//    dataPointRH += "CX:" + String() + ";";
+//    dataPointRH += "CY:" + String() + ";";
+//    dataPointRH += "CZ:" + String() + ";";
+//    dataPointRH += "OC:" + String() + ";";
+//    dataPointRH += "O2:" + String() + ";";
+//    dataPointRH += "RS:" + String() + ";";
+//    dataPointRH += "BV:" + String() + ";";
+//    dataPointRH += "}";
 
-    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
+
+
+    // CALIBRATING SGP30 WITH HUMIDITY AND TEMPERATURE
+    Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
   }
 
 
@@ -353,10 +348,10 @@ void loop(){
       FRAMDisk.write8(0x0, 1);
       FRAMDisk.write8(0x1, (uint8_t)CO2_baseline);
       FRAMDisk.write8(0x2, (uint8_t)TVOC_baseline);
-      //Serial.println("Set baselines to " + String(CO2_baseline) + " and " + String(TVOC_baseline));
+      Serial.println("Set baselines to " + String(CO2_baseline) + " and " + String(TVOC_baseline));
     }else{
       FRAMDisk.write8(0x0, 0);
     }
   }
-  
+
 }
