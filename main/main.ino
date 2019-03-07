@@ -58,6 +58,8 @@ void setup(){
   pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(79, 0, 180, SERVOMIN, SERVOMAX));
+  // open pins
+  pwm.setPWM(SERVO_PINS, 0, map(26, 0, 180, SERVOMIN, SERVOMAX));
 
   // --------------- Startup charm -------------------- //
   tone(BUZZ, 1000);
