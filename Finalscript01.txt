@@ -15,9 +15,9 @@
 // PIN DEFINITIONS
 const unsigned short int PIN_RH_RST = 10;    //
 const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
-const unsigned short int PIN_RH_INT = 6;    //
-const unsigned short int PIN_BUZZ = 11;
-const unsigned short int PIN_A_BAT = 9;
+const unsigned short int PIN_RH_INT = 6;     //
+const unsigned short int PIN_BUZZ = 11;      // Buzzer
+const unsigned short int PIN_A_BAT = 9;      // Battery voltage
 
 const int PIN_MCU_LED = LED_BUILTIN;
 
