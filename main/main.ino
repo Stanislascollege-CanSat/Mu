@@ -3,21 +3,21 @@
 #include <Wire.h>
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
-#include <Adafruit_Sensor.h> // de rest
-#include <Adafruit_SGP30.h> // gassensor
-#include <Adafruit_Si7021.h> // humidity and airtemperature
-#include <Adafruit_BMP280.h> // airtemperature / airpressure
-#include <Adafruit_PWMServoDriver.h> // servo-driver
-#include <Adafruit_FRAM_I2C.h> // fra
-#include <Adafruit_GPS.h> // gps
-#include <MPU9250.h> // gyroscoop, compas en accelerometer
+#include <Adafruit_Sensor.h>          // Shared Class
+#include <Adafruit_SGP30.h>           // TVOC & eCO2
+#include <Adafruit_Si7021.h>          // Humidity & Airtemperature
+#include <Adafruit_BMP280.h>          // Airtemperature & Airpressure
+#include <Adafruit_PWMServoDriver.h>  // servo driver
+#include <Adafruit_FRAM_I2C.h>        // FRAM
+#include <Adafruit_GPS.h>             // GPS
+#include <MPU9250.h>                  // IMU
 
 // PIN DEFINITIONS
 const unsigned short int PIN_RH_RST = 10;    //
 const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
-const unsigned short int PIN_RH_INT = 6;    //
-const unsigned short int PIN_BUZZ = 11;
-const unsigned short int PIN_A_BAT = 9;
+const unsigned short int PIN_RH_INT = 6;     //
+const unsigned short int PIN_BUZZ = 11;      // Buzzer
+const unsigned short int PIN_A_BAT = 9;      // Battery voltage
 
 const int PIN_MCU_LED = LED_BUILTIN;
 
@@ -95,8 +95,6 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
-
-
 //
 // SETUP FUNCTION
 //
@@ -105,8 +103,7 @@ void setup(){
   Serial.begin(115200);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
-
-  pwm.setPWMFreq(60);
+  pwm.setPWMFreq(60); // Suitable frequency for most servo's.
 
   // open hull
   pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
@@ -161,12 +158,12 @@ void setup(){
 
   // fram disk
   if(!FRAMDisk.begin()){
-    
+
   }
-  
-  // Sensor_BMP
+
+  // Sensor_BMP280
   if(!Sensor_BMP.begin()){
-    
+
   }
 
   // Sensor_SGP30
@@ -178,7 +175,7 @@ void setup(){
 
   // Sensor_Si7021
   if(!Sensor_Si7021.begin()){
-    
+
   }
 
   // Adafruit_GPS
@@ -187,18 +184,13 @@ void setup(){
   Sensor_GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
   Sensor_GPS.sendCommand(PGCMD_ANTENNA);
 
-  // Motion sensor (IMU)
+  // Sensor_MPU-9250 (IMU)
   if(Sensor_Motion.begin() < 0){
-    
+
   }
-  
-
-  
-
-
 
   // --------------- Confirming boot -------------------- //
-  
+
   String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
 //  for(int i = 100; i < 4000; i += 5){
