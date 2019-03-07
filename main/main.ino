@@ -31,15 +31,34 @@ const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_MU; // Set local channel,
 
 const float RH_DRIVER_FREQ = 868.0;   // RHDriver Frequency
 
+// SERVO VARIABLES
+const int SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
+const int SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)
+const unsigned short int SERVO_PINS = 0;
+const unsigned short int SERVO_HULL = 1;
+
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
+
+// PWM DECLARATION
+Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x44);
 
 //
 // SETUP FUNCTION
 //
 
 void setup(){
+  // --------------- Set pin and hull position -------------------- //
+  pwm.begin();
+
+  pwm.setPWMFreq(60);
+
+  // open hull
+  pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
+  delay(1000);
+  pwm.setPWM(SERVO_HULL, 0, map(79, 0, 180, SERVOMIN, SERVOMAX));
+
   // --------------- Startup charm -------------------- //
   tone(BUZZ, 1000);
   digitalWrite(MCU_LED, HIGH);
