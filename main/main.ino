@@ -1,7 +1,9 @@
 // INCLUDES
 #include <SPI.h>
+#include <Wire.h>
 #include <RH_RF95.h>
 #include <RHReliableDatagram.h>
+#include <Adafruit_Sensor.h>
 #include <Adafruit_SGP30.h>
 #include <Adafruit_Si7021.h>
 #include <Adafruit_BMP280.h>
@@ -9,7 +11,11 @@
 #include <Adafruit_GPS.h>
 #include <MPU9250.h>
 
-
+// PIN DEFINITIONS
+const unsigned short int PIN_RH_RST = 10;    //
+const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
+const unsigned short int PIN_RH_INT = 6;    //
+const unsigned short int PIN_BUZZ = 11
 
 // RADIO CHANNELS
 const unsigned short int RH_CHANNEL_GS_ALPHA = 1;   //
@@ -19,11 +25,6 @@ const unsigned short int RH_CHANNEL_BETA = 4;       //
 const unsigned short int RH_CHANNEL_RHO = 5;        //
 
 const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_BETA; // Set local channel, used by the programme
-
-// PIN DEFINITIONS
-const unsigned short int PIN_RH_RST = 10;    //
-const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
-const unsigned short int PIN_RH_INT = 6;    //
 
 const float RHDriverFreq = 868.0;   // RHDriver Frequency
 
