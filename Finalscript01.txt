@@ -102,7 +102,7 @@ void setup(){
   Serial.begin(115200);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
-  pwm.setPWMFreq(60);
+  pwm.setPWMFreq(60); // Suitable frequency for most servo's.
 
   // open hull
   pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
@@ -160,7 +160,7 @@ void setup(){
 
   }
 
-  // Sensor_BMP
+  // Sensor_BMP280
   if(!Sensor_BMP.begin()){
 
   }
@@ -183,7 +183,7 @@ void setup(){
   Sensor_GPS.sendCommand(PMTK_SET_NMEA_UPDATE_1HZ);
   Sensor_GPS.sendCommand(PGCMD_ANTENNA);
 
-  // Motion sensor (IMU)
+  // Sensor_MPU-9250 (IMU)
   if(Sensor_Motion.begin() < 0){
 
   }
@@ -192,11 +192,11 @@ void setup(){
 
   String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
-//  for(int i = 100; i < 4000; i += 5){
-//    tone(PIN_BUZZ, i);
-//    delay(2);
-//  }
-//  noTone(PIN_BUZZ);
+  //  for(int i = 100; i < 4000; i += 5){
+  //    tone(PIN_BUZZ, i);
+  //    delay(2);
+  //  }
+  //  noTone(PIN_BUZZ);
 
   startupTime = millis();
 }
