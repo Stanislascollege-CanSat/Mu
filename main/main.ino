@@ -223,18 +223,18 @@ void loop(){
     if (!Sensor_GPS.parse(Sensor_GPS.lastNMEA())) // this also sets the newNMEAreceived() flag to false
       return; // we can fail to parse a sentence in which case we should just wait for another
   }
-  
+
   if(int(millis()) % 500 == 0){
     // READING SENSORS
     Sensor_Motion.readSensor();
-  
 
-    
-  
+
+
+
     if(Sensor_SGP30.IAQmeasure()){
-      
+
     }
-  
+
     // READING SENSOR DATA
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
@@ -304,7 +304,7 @@ void loop(){
 //    Serial.print("angl:"); Serial.println(GPS_angle);
 //    Serial.print("alti:"); Serial.println(GPS_altitude);
 //    Serial.print("stli:"); Serial.println(GPS_satellites);
-  
+
     // WORKING WITH THE DATA
     String dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
     dataPointRH += "GT:" + GPS_timestring + ";";
@@ -350,5 +350,5 @@ void loop(){
       FRAMDisk.write8(0x0, 0);
     }
   }
-  
+
 }
