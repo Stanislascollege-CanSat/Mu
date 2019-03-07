@@ -8,6 +8,7 @@
 #include <Adafruit_Si7021.h>
 #include <Adafruit_BMP280.h>
 #include <Adafruit_PWMServoDriver.h>
+#include <Adafruit_FRAM_I2C.h>
 #include <Adafruit_GPS.h>
 #include <MPU9250.h>
 
@@ -18,7 +19,7 @@ const unsigned short int PIN_RH_INT = 6;    //
 const unsigned short int PIN_BUZZ = 11;
 const unsigned short int PIN_A_BAT = 9;
 
-const string PIN_MCU_LED = LED_BUILTIN;
+const int PIN_MCU_LED = LED_BUILTIN;
 
 // RADIO CHANNELS
 const unsigned short int RH_CHANNEL_GS_ALPHA = 1;   //
@@ -32,8 +33,8 @@ const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_MU; // Set local channel,
 const float RH_DRIVER_FREQ = 868.0;   // RHDriver Frequency
 
 // SERVO VARIABLES
-const int SERVOMIN 150 // this is the 'minimum' pulse length count (out of 4096)
-const int SERVOMAX 600 // this is the 'maximum' pulse length count (out of 4096)
+const int SERVOMIN = 150; // this is the 'minimum' pulse length count (out of 4096)
+const int SERVOMAX = 600; // this is the 'maximum' pulse length count (out of 4096)
 const unsigned short int SERVO_PINS = 0;
 const unsigned short int SERVO_HULL = 1;
 
@@ -58,38 +59,42 @@ void setup(){
   pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(79, 0, 180, SERVOMIN, SERVOMAX));
-  // open pins
-  pwm.setPWM(SERVO_PINS, 0, map(26, 0, 180, SERVOMIN, SERVOMAX));
+  delay(100);
+  pwm.setPin(SERVO_HULL, 0);
+  // close pins
+  pwm.setPWM(SERVO_PINS, 0, map(0, 0, 180, SERVOMIN, SERVOMAX));
+  delay(300);
+  pwm.setPin(SERVO_PINS, 0);
 
   // --------------- Startup charm -------------------- //
-  tone(BUZZ, 1000);
-  digitalWrite(MCU_LED, HIGH);
+  tone(PIN_BUZZ, 1000);
+  digitalWrite(PIN_MCU_LED, HIGH);
   delay(500);
-  noTone(BUZZ);
-  digitalWrite(MCU_LED, LOW);
+  noTone(PIN_BUZZ);
+  digitalWrite(PIN_MCU_LED, LOW);
   delay(300);
-  tone(BUZZ,1500);
-  digitalWrite(MCU_LED, HIGH);
+  tone(PIN_BUZZ,1500);
+  digitalWrite(PIN_MCU_LED, HIGH);
   delay(400);
-  noTone(BUZZ);
-  digitalWrite(MCU_LED, LOW);
+  noTone(PIN_BUZZ);
+  digitalWrite(PIN_MCU_LED, LOW);
 
   // --------------- Starting serial @ 115200 -------------------- //
-  SerialUSB.begin(115200);
+  Serial.begin(115200);
   delay(100);
 
-  SerialUSB.println("Started setup @RHChannel_" + String(RH_CHANNEL_LOCAL));
+  Serial.println("Started setup @RHChannel_" + String(RH_CHANNEL_LOCAL));
 
   // --------------- Initializing RH_Datagram -------------------- //
   if(!RHNetwork.init()){
-    SerialUSB.println("ERR: 11 -> RHNetwork INIT failed. Did you assign the right pins?");
+    Serial.println("ERR: 11 -> RHNetwork INIT failed. Did you assign the right pins?");
     while(1);
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
 
   if(!RHDriver.setFrequency(RH_DRIVER_FREQ)){
-    SerialUSB.println("ERR: 12 -> RHDriver setFrequency failed. Check the connection with the radio chip.");
+    Serial.println("ERR: 12 -> RHDriver setFrequency failed. Check the connection with the radio chip.");
     while(1);
     //exit(12);
   }
@@ -107,7 +112,7 @@ void setup(){
   RHNetwork.setTimeout(200);
 
 
-  SerialUSB.println("Setup finished in " + String(millis()) + " milliseconds.");
+  Serial.println("Setup finished in " + String(millis()) + " milliseconds.");
 }
 
 //
@@ -124,10 +129,10 @@ void loop(){
 
   if(RHNetwork.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)){
     // valid message received
-    SerialUSB.print("0x");
-    SerialUSB.print(FROM_ADDRESS, HEX);
-    SerialUSB.print(": ");
-    SerialUSB.println((char*) BUF);
+    Serial.print("0x");
+    Serial.print(FROM_ADDRESS, HEX);
+    Serial.print(": ");
+    Serial.println((char*) BUF);
     delay(1000);
     RHNetwork.sendtoWait(BUF, LEN, FROM_ADDRESS);
   }
