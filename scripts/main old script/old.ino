@@ -20,13 +20,6 @@ const unsigned short int A_BAT = 9;
 
 const string MCU_LED = LED_BUILTIN;
 
-// CONSTANTS
-const unsigned short int RF_ADDRESS_ALPHA = 1;
-const unsigned short int RF_ADDRESS_MU = 2;
-const unsigned short int RF_ADDRESS_BETA = 3;
-const unsigned short int RF_ADDRESS_RHO = 4;
-const unsigned short int RF_ADDRESS_DELTA = 5;
-
 const float RF_FREQ = 868.0;
 
 // OBJECT DECLARATION

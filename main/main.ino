@@ -15,7 +15,10 @@
 const unsigned short int PIN_RH_RST = 10;    //
 const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
 const unsigned short int PIN_RH_INT = 6;    //
-const unsigned short int PIN_BUZZ = 11
+const unsigned short int PIN_BUZZ = 11;
+const unsigned short int PIN_A_BAT = 9;
+
+const string PIN_MCU_LED = LED_BUILTIN;
 
 // RADIO CHANNELS
 const unsigned short int RH_CHANNEL_GS_ALPHA = 1;   //
@@ -24,40 +27,48 @@ const unsigned short int RH_CHANNEL_MU = 3;         // Available radio-network-c
 const unsigned short int RH_CHANNEL_BETA = 4;       //
 const unsigned short int RH_CHANNEL_RHO = 5;        //
 
-const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_BETA; // Set local channel, used by the programme
+const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_MU; // Set local channel, used by the programme
 
-const float RHDriverFreq = 868.0;   // RHDriver Frequency
+const float RH_DRIVER_FREQ = 868.0;   // RHDriver Frequency
 
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
-
-
-
-
-
 
 //
 // SETUP FUNCTION
 //
 
 void setup(){
-  // --------------- Starting serial @ 115200 -------------------- //
-  Serial.begin(115200);
-  delay(1000);
+  // --------------- Startup charm -------------------- //
+  tone(BUZZ, 1000);
+  digitalWrite(MCU_LED, HIGH);
+  delay(500);
+  noTone(BUZZ);
+  digitalWrite(MCU_LED, LOW);
+  delay(300);
+  tone(BUZZ,1500);
+  digitalWrite(MCU_LED, HIGH);
+  delay(400);
+  noTone(BUZZ);
+  digitalWrite(MCU_LED, LOW);
 
-  Serial.println("Started setup @RHChannel_" + String(RH_CHANNEL_LOCAL));
+  // --------------- Starting serial @ 115200 -------------------- //
+  SerialUSB.begin(115200);
+  delay(100);
+
+  SerialUSB.println("Started setup @RHChannel_" + String(RH_CHANNEL_LOCAL));
 
   // --------------- Initializing RH_Datagram -------------------- //
   if(!RHNetwork.init()){
-    Serial.println("ERR: 11 -> RHNetwork INIT failed. Did you assign the right pins?");
+    SerialUSB.println("ERR: 11 -> RHNetwork INIT failed. Did you assign the right pins?");
     while(1);
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
 
-  if(!RHDriver.setFrequency(RHDriverFreq)){
-    Serial.println("ERR: 12 -> RHDriver setFrequency failed. Check the connection with the radio chip.");
+  if(!RHDriver.setFrequency(RH_DRIVER_FREQ)){
+    SerialUSB.println("ERR: 12 -> RHDriver setFrequency failed. Check the connection with the radio chip.");
     while(1);
     //exit(12);
   }
@@ -75,16 +86,12 @@ void setup(){
   RHNetwork.setTimeout(200);
 
 
-  Serial.println("Setup finished in " + String(millis()) + " milliseconds.");
+  SerialUSB.println("Setup finished in " + String(millis()) + " milliseconds.");
 }
-
-
 
 //
 // LOOP FUNCTION
 //
-
-
 
 void loop(){
 
@@ -96,10 +103,10 @@ void loop(){
 
   if(RHNetwork.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)){
     // valid message received
-    Serial.print("0x");
-    Serial.print(FROM_ADDRESS, HEX);
-    Serial.print(": ");
-    Serial.println((char*) BUF);
+    SerialUSB.print("0x");
+    SerialUSB.print(FROM_ADDRESS, HEX);
+    SerialUSB.print(": ");
+    SerialUSB.println((char*) BUF);
     delay(1000);
     RHNetwork.sendtoWait(BUF, LEN, FROM_ADDRESS);
   }
