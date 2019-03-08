@@ -16,6 +16,7 @@
 const unsigned short int PIN_RH_RST = 10;    //
 const unsigned short int PIN_RH_CS = 12;     // RHDriver pins
 const unsigned short int PIN_RH_INT = 6;     //
+
 const unsigned short int PIN_BUZZ = 11;      // Buzzer
 const unsigned short int PIN_A_BAT = 9;      // Battery voltage
 
@@ -65,6 +66,7 @@ unsigned int startupTime;
 float BMP_temperature;
 float BMP_airpressure;
 float BMP_altitude;
+float BMP_PREVIOUS_altitude;
 float Si7021_humidity;
 float Si7021_temperature;
 float SGP30_TVOC;
@@ -101,6 +103,7 @@ int GPS_satellites;
 
 void setup(){
   Serial.begin(115200);
+  while(!Serial);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
   pwm.setPWMFreq(60); // Suitable frequency for most servo's.
@@ -169,7 +172,9 @@ void setup(){
   // Sensor_SGP30
   if(Sensor_SGP30.begin()){
     if(FRAMDisk.read8(0x0) == 1){
-      Sensor_SGP30.setIAQBaseline((uint16_t)FRAMDisk.read8(0x1), (uint16_t)FRAMDisk.read8(0x2));
+      uint16_t CO2_baseline = (FRAMDisk.read8(0x1) << 8) | (FRAMDisk.read8(0x2) & 0xff);
+      uint16_t TVOC_baseline = (FRAMDisk.read8(0x3) << 8) | (FRAMDisk.read8(0x4) & 0xff);
+      Sensor_SGP30.setIAQBaseline(CO2_baseline, TVOC_baseline);
     }
   }
 
@@ -256,13 +261,13 @@ void loop(){
     IMU_Mag_Y = Sensor_Motion.getMagY_uT();
     IMU_Mag_Z = Sensor_Motion.getMagZ_uT();
     //IMU_temperature;
-    GPS_hour = Sensor_GPS.hour;
+    GPS_hour = Sensor_GPS.hour + 1.0;
     GPS_minute = Sensor_GPS.minute;
     GPS_second = Sensor_GPS.seconds;
     GPS_millisecond = Sensor_GPS.milliseconds;
-    GPS_timestring = ((String(GPS_hour).length() < 2) ? "0" + String(GPS_hour) : String(GPS_hour));
-    GPS_timestring += ((String(GPS_minute).length() < 2) ? "0" + String(GPS_minute) : String(GPS_minute));
-    GPS_timestring += ((String(GPS_second).length() < 2) ? "0" + String(GPS_second) : String(GPS_second));
+    GPS_timestring = ((String(GPS_hour).length() < 2) ? "0" + String(int(GPS_hour)) : String(int(GPS_hour)));
+    GPS_timestring += ((String(GPS_minute).length() < 2) ? "0" + String(int(GPS_minute)) : String(int(GPS_minute)));
+    GPS_timestring += ((String(GPS_second).length() < 2) ? "0" + String(int(GPS_second)) : String(int(GPS_second)));
     GPS_day = Sensor_GPS.day;
     GPS_month = Sensor_GPS.month;
     GPS_year = Sensor_GPS.year;
@@ -331,10 +336,65 @@ void loop(){
     dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
     dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
     dataPointRH += "O2:" + String(SGP30_CO2) + ";";
-    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*0.064453125) + ";";
+    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
     dataPointRH += "}";
 
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
+
+    dataPointRH = "{";
+    dataPointRH += "GT:" + GPS_timestring + ";";
+    dataPointRH += "TS:" + String(millis() - startupTime) + ";";
+    dataPointRH += "GA:" + String(GPS_latitude, 4) + ";";
+    dataPointRH += "GO:" + String(GPS_longitude, 4) + ";";
+    dataPointRH += "GH:" + String(GPS_altitude) + ";";
+    dataPointRH += "GS:" + String(GPS_speed) + ";";
+    dataPointRH += "GV:" + String(GPS_angle) + ";";
+    dataPointRH += "G3:" + String(GPS_fix) + ";";
+    dataPointRH += "GN:" + String(GPS_satellites) + ";";
+    dataPointRH += "AP:" + String(BMP_airpressure) + ";";
+    dataPointRH += "AT:" + String(BMP_temperature) + ";";
+    dataPointRH += "AL:" + String(BMP_altitude) + ";";
+    dataPointRH += "HM:" + String(Si7021_humidity) + ";";
+    dataPointRH += "AX:" + String(IMU_Acc_X) + ";";
+    dataPointRH += "AY:" + String(IMU_Acc_Y) + ";";
+    dataPointRH += "AZ:" + String(IMU_Acc_Z) + ";";
+    dataPointRH += "GX:" + String(IMU_Gyro_X) + ";";
+    dataPointRH += "GY:" + String(IMU_Gyro_Y) + ";";
+    dataPointRH += "GZ:" + String(IMU_Gyro_Z) + ";";
+    dataPointRH += "CX:" + String(IMU_Mag_X) + ";";
+    dataPointRH += "CY:" + String(IMU_Mag_Y) + ";";
+    dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
+    dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
+    dataPointRH += "O2:" + String(SGP30_CO2) + ";";
+    //dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
+    dataPointRH += "}";
+
+//    for(int i = 0; i < dataPointRH.length(); ++i){
+//      if(FRAM_LAST_LOCATION < 255000 - FRAM_DATA_BEGIN_LOCATION){
+//        FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH.charAt(i));
+//        FRAM_LAST_LOCATION++;
+//      }
+//    }
+
+//    Serial.println("Written " + String(int(FRAM_LAST_LOCATION)) + " bytes in " + String(millis() - startupTime) + " milliseconds");
+//    Serial.println("GPS fix: " + String(GPS_fix));
+
+    // RELEASE SAFETY PROTOCOL
+    
+    
+
+
+    BMP_PREVIOUS_altitude = BMP_altitude;
+  }
+
+  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
+  uint8_t LEN = sizeof(BUF);
+  uint8_t FROM_ADDRESS;
+
+
+  if(RHNetwork.recvfromAck(BUF, &LEN, &FROM_ADDRESS)){
+    String reader = String((char*)BUF);
+    Serial.println(reader);
   }
 
 
@@ -343,9 +403,13 @@ void loop(){
     uint16_t TVOC_baseline, CO2_baseline;
     if(Sensor_SGP30.getIAQBaseline(&CO2_baseline, &TVOC_baseline)){
       FRAMDisk.write8(0x0, 1);
-      FRAMDisk.write8(0x1, (uint8_t)CO2_baseline);
-      FRAMDisk.write8(0x2, (uint8_t)TVOC_baseline);
-      //Serial.println("Set baselines to " + String(CO2_baseline) + " and " + String(TVOC_baseline));
+      FRAMDisk.write8(0x1, (CO2_baseline >> 8));
+      FRAMDisk.write8(0x2, (CO2_baseline & 0xff));
+      FRAMDisk.write8(0x3, (TVOC_baseline >> 8));
+      FRAMDisk.write8(0x4, (TVOC_baseline & 0xff));
+//      Serial.println("Set baselines to " + String(CO2_baseline) + " and " + String(TVOC_baseline));
+//      Serial.println(CO2_baseline);
+//      Serial.println(TVOC_baseline);
     }else{
       FRAMDisk.write8(0x0, 0);
     }
