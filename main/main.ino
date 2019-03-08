@@ -1,8 +1,8 @@
 // INCLUDES
-#include <SPI.h>
-#include <Wire.h>
-#include <RH_RF95.h>
-#include <RHReliableDatagram.h>
+#include <SPI.h>                      // SPI
+#include <Wire.h>                     // I2C
+#include <RH_RF95.h>                  // Radio
+#include <RHReliableDatagram.h>       // Network
 #include <Adafruit_Sensor.h>          // Shared Class
 #include <Adafruit_SGP30.h>           // TVOC & eCO2
 #include <Adafruit_Si7021.h>          // Humidity & Airtemperature
@@ -14,7 +14,7 @@
 
 // PIN DEFINITIONS
 const unsigned short int PIN_RH_RST = 10;    //
-const unsigned short int PIN_RH_CS = 12;     // Setting: RHDriver pins
+const unsigned short int PIN_RH_CS = 12;     // RHDriver pins
 const unsigned short int PIN_RH_INT = 6;     //
 const unsigned short int PIN_BUZZ = 11;      // Buzzer
 const unsigned short int PIN_A_BAT = 9;      // Battery voltage
