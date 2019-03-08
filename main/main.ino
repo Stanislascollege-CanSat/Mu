@@ -1,3 +1,29 @@
+//   ------------------------------------------------------------------------------   //
+//  |                                 PROJECT BETA                                 |  //
+//  |                                   Software                                   |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                   MOTHERCAN                                  |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                               Written by Rens Dur                            |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//  |                                                                              |  //
+//   ------------------------------------------------------------------------------   //
+
+
+
+
 // INCLUDES
 #include <SPI.h>                      // SPI
 #include <Wire.h>                     // I2C
@@ -5,7 +31,7 @@
 #include <RHReliableDatagram.h>       // Network
 #include <Adafruit_Sensor.h>          // Shared Class
 #include <Adafruit_SGP30.h>           // TVOC & eCO2
-#include <Adafruit_Si7021.h>          // Humidity & Airtemperature
+//#include <Adafruit_Si7021.h>          // Humidity & Airtemperature
 #include <Adafruit_BMP280.h>          // Airtemperature & Airpressure
 #include <Adafruit_PWMServoDriver.h>  // servo driver
 #include <Adafruit_FRAM_I2C.h>        // FRAM
@@ -50,7 +76,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x44);
 // SENSOR OBJECT DECLARATION
 Adafruit_BMP280 Sensor_BMP;
 Adafruit_SGP30 Sensor_SGP30;
-Adafruit_Si7021 Sensor_Si7021 = Adafruit_Si7021();
+//Adafruit_Si7021 Sensor_Si7021 = Adafruit_Si7021();
 Adafruit_FRAM_I2C FRAMDisk = Adafruit_FRAM_I2C();
 uint64_t FRAM_DATA_BEGIN_LOCATION = 10;
 uint64_t FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
@@ -97,28 +123,62 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
+
+
+bool DEPLOY_COMMAND_TRIGGERED;
+
+int RINGSERVO_startRecord;
+bool RINGSERVO_turning;
+bool RINGSERVO_direction;
+int RINGSERVO_angle_silent;
+int RINGSERVO_speed;
+
+int PINSERVO_startRecord;
+bool PINSERVO_turning;
+bool PINSERVO_direction;
+int PINSERVO_angle_close;
+int PINSERVO_angle_open;
+
+
 //
 // SETUP FUNCTION
 //
 
 void setup(){
   Serial.begin(115200);
-  while(!Serial);
+  //while(!Serial);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
   pwm.setPWMFreq(60); // Suitable frequency for most servo's.
 
-  // open hull
-  pwm.setPWM(SERVO_HULL, 0, map(79 - 5, 0, 180, SERVOMIN, SERVOMAX));
-  delay(1000);
-  pwm.setPWM(SERVO_HULL, 0, map(79, 0, 180, SERVOMIN, SERVOMAX));
-  delay(100);
-  pwm.setPin(SERVO_HULL, 0);
-  // close pins
-  pwm.setPWM(SERVO_PINS, 0, map(0, 0, 180, SERVOMIN, SERVOMAX));
+  RINGSERVO_angle_silent = 78;
+  RINGSERVO_speed = 50;
+  PINSERVO_angle_close = 12;
+  PINSERVO_angle_open = 45;
+
+//  delay(300);
+//  // close pins
+  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
   delay(300);
   pwm.setPin(SERVO_PINS, 0);
+//  // open hull
+  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+  delay(1000);
+  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
+  delay(200);
+  pwm.setPin(SERVO_HULL, 0);
 
+  RINGSERVO_turning = false;
+  RINGSERVO_direction = false;
+  DEPLOY_COMMAND_TRIGGERED = false;
+
+  PINSERVO_turning = false;
+  PINSERVO_direction = false;
+
+  // DECLARING PINS
+  pinMode(PIN_RH_RST, OUTPUT);
+  digitalWrite(PIN_RH_RST, HIGH);
+  
   // --------------- Startup charm -------------------- //
   tone(PIN_BUZZ, 1000);
   digitalWrite(PIN_MCU_LED, HIGH);
@@ -133,6 +193,14 @@ void setup(){
   digitalWrite(PIN_MCU_LED, LOW);
 
   // --------------- Initializing RH_Datagram -------------------- //
+  // manual reset
+  digitalWrite(PIN_RH_RST, LOW);
+  delay(10);
+  digitalWrite(PIN_RH_RST, HIGH);
+  delay(10);
+
+
+  
   if(!RHNetwork.init()){
     while(1);
   }
@@ -179,9 +247,9 @@ void setup(){
   }
 
   // Sensor_Si7021
-  if(!Sensor_Si7021.begin()){
-
-  }
+//  if(!Sensor_Si7021.begin()){
+//
+//  }
 
   // Adafruit_GPS
   Sensor_GPS.begin(9600);
@@ -198,11 +266,11 @@ void setup(){
 
   String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
-  //  for(int i = 100; i < 4000; i += 5){
-  //    tone(PIN_BUZZ, i);
-  //    delay(2);
-  //  }
-  //  noTone(PIN_BUZZ);
+    for(int i = 100; i < 4000; i += 5){
+      tone(PIN_BUZZ, i);
+      delay(2);
+    }
+    noTone(PIN_BUZZ);
 
   startupTime = millis();
 }
@@ -214,12 +282,148 @@ uint32_t getAbsoluteHumidity(float temperature, float humidity) {
   return absoluteHumidityScaled;
 }
 
+//
+// DEPLOY BABYCANS
+//
+
+void openRing(){
+  // TURN THE RING OPEN
+  if(!RINGSERVO_turning){
+    //pwm.setPin(SERVO_HULL, 1);
+    //delay(200);
+    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+    RINGSERVO_turning = true;
+    RINGSERVO_direction = true;
+    RINGSERVO_startRecord = millis();
+  }
+}
+
+void closeRing(){
+  if(!RINGSERVO_turning){
+    //pwm.setPin(SERVO_HULL, 1);
+    //delay(200);
+    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+    RINGSERVO_turning = true;
+    RINGSERVO_direction = false;
+    RINGSERVO_startRecord = millis();
+  }
+}
+
+void stopRing(){
+  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
+}
+
+void openPins(){
+  //pwm.setPin(SERVO_PINS, 1);
+  //delay(200);
+  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_open, 0, 180, SERVOMIN, SERVOMAX));
+  PINSERVO_turning = true;
+  PINSERVO_startRecord = millis();
+}
+
+void closePins(){
+  //pwm.setPin(SERVO_PINS, 1);
+  //delay(200);
+  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
+  PINSERVO_turning = true;
+  PINSERVO_startRecord = millis();
+}
+
+void deployBabyCans(){
+  openRing();
+  DEPLOY_COMMAND_TRIGGERED = true;
+}
+
+void closeDeploy(){
+  closePins();
+  delay(500);
+  closeRing();
+}
+
 
 //
 // LOOP FUNCTION
 //
 
 void loop(){
+  //Serial.print("LOOP");
+
+
+  // RADIO RECEIVE COMMAND
+//  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
+//  uint8_t LEN = sizeof(BUF);
+//  uint8_t FROM_ADDRESS;
+//  uint8_t TO_ADDRESS;
+//
+//
+//  if(RHNetwork.recvfromAck(BUF, &LEN, &FROM_ADDRESS, &TO_ADDRESS)){
+//    String reader = String((char*)BUF);
+//    if(reader.equals("DEP")){
+//      Serial.println("DEP called");
+//      deployBabyCans();
+//    }
+//  }
+
+
+  if(PINSERVO_turning){
+    if(millis() - PINSERVO_startRecord > 400){
+      PINSERVO_turning = false;
+      pwm.setPin(SERVO_PINS, 0);
+    }
+  }
+
+
+  if(RINGSERVO_turning && !DEPLOY_COMMAND_TRIGGERED){
+    //Serial.println("stopping servo");
+    if(millis() - RINGSERVO_startRecord > 1500){
+      RINGSERVO_turning = false;
+      pwm.setPin(SERVO_HULL, 0);
+    }else if(millis() - RINGSERVO_startRecord > 1000){
+      stopRing();
+    }
+  }
+
+  if(DEPLOY_COMMAND_TRIGGERED){
+    if(RINGSERVO_turning){
+      if(millis() - RINGSERVO_startRecord > 1000){
+        stopRing();
+        RINGSERVO_turning = false;
+      }
+    }else{
+      if(millis() - RINGSERVO_startRecord > 1500){
+        DEPLOY_COMMAND_TRIGGERED = false;
+        PINSERVO_turning = false;
+        pwm.setPin(SERVO_HULL, 0);
+        pwm.setPin(SERVO_PINS, 0);
+      }else if(millis() - RINGSERVO_startRecord > 1100){
+        openPins();
+      }
+    }
+  }
+
+  if(Serial.available()){
+    String reader = Serial.readString();
+    if(reader.equals("oP")){
+      openPins();
+    }else if(reader.equals("cP")){
+      closePins();
+    }else if(reader.equals("oR")){
+      openRing();
+    }else if(reader.equals("cR")){
+      closeRing();
+    }else if(reader.equals("sR")){
+      stopRing();
+    }else if(reader.equals("deploy")){
+      deployBabyCans();
+    }else if(reader.equals("close")){
+      closeDeploy();
+    }else{
+      PINSERVO_angle_close = reader.toInt();
+    }
+  }
+
+  
+  
   Sensor_GPS.read();
   if (Sensor_GPS.newNMEAreceived()) {
     // a tricky thing here is if we print the NMEA sentence, or data
@@ -244,10 +448,10 @@ void loop(){
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
     BMP_altitude = Sensor_BMP.readAltitude(992);
-    Si7021_humidity = Sensor_Si7021.readHumidity();
-    Si7021_temperature = Sensor_Si7021.readTemperature();
+    //Si7021_humidity = Sensor_Si7021.readHumidity();
+    //Si7021_temperature = Sensor_Si7021.readTemperature();
     // CALIBRATING SGP30
-    Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
+    //Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
     //
     SGP30_TVOC = Sensor_SGP30.TVOC;
     SGP30_CO2 = Sensor_SGP30.eCO2;
@@ -340,6 +544,7 @@ void loop(){
     dataPointRH += "}";
 
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
+    RHNetwork.waitPacketSent();
 
     dataPointRH = "{";
     dataPointRH += "GT:" + GPS_timestring + ";";
@@ -385,16 +590,6 @@ void loop(){
 
 
     BMP_PREVIOUS_altitude = BMP_altitude;
-  }
-
-  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
-  uint8_t LEN = sizeof(BUF);
-  uint8_t FROM_ADDRESS;
-
-
-  if(RHNetwork.recvfromAck(BUF, &LEN, &FROM_ADDRESS)){
-    String reader = String((char*)BUF);
-    Serial.println(reader);
   }
 
 
