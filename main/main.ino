@@ -238,9 +238,7 @@ void setup(){
   Sensor_GPS.sendCommand(PGCMD_ANTENNA);
 
   // Sensor_MPU-9250 (IMU)
-  if(Sensor_Motion.begin() < 0){
-
-  }
+  if(Sensor_Motion.begin() < 0){}
 
   // --------------- Confirming boot -------------------- //
 
