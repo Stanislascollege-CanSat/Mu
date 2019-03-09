@@ -421,8 +421,7 @@ void loop(){
     Si7021_humidity = Sensor_Si7021.readHumidity();
     Si7021_temperature = Sensor_Si7021.readTemperature();
     // CALIBRATING SGP30
-    //Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
-    //
+    Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
     SGP30_TVOC = Sensor_SGP30.TVOC;
     SGP30_CO2 = Sensor_SGP30.eCO2;
     IMU_Acc_X = Sensor_Motion.getAccelX_mss();
