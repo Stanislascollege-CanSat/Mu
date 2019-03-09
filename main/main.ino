@@ -558,6 +558,10 @@ void loop(){
     BMP_PREVIOUS_altitude = BMP_altitude;
   }
 
+  // MEASURE TEMPERATURE FOR DEPLOY
+  if(int(millis()) % 100 == 0){
+    Serial.print("{AT:"+String(Sensor_BMP.readTemperature(), 1)+";}");
+  }
 
   // UPDATING BASELINES FOR CHIP: SGP30
   if(int(millis()) % 30000 == 0){
