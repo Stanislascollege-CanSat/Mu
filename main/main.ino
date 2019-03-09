@@ -135,17 +135,6 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
-bool DEPLOY_COMMAND_TRIGGERED;
-int RINGSERVO_startRecord;
-bool RINGSERVO_turning;
-bool RINGSERVO_direction;
-int RINGSERVO_angle_silent;
-int RINGSERVO_speed;
-int PINSERVO_startRecord;
-bool PINSERVO_turning;
-bool PINSERVO_direction;
-int PINSERVO_angle_close;
-int PINSERVO_angle_open;
 // --------------------------------------------------- //
 // --------------- SETUP FUNCTION -------------------- //
 // --------------------------------------------------- //
