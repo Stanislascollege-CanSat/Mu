@@ -63,6 +63,11 @@ const int SERVOMAX = 600; // this is the 'maximum' pulse length count (out of 40
 const unsigned short int SERVO_PINS = 0;
 const unsigned short int SERVO_HULL = 1;
 
+const int PINSERVO_angle_close = 0;    // Close value @50Hz 0
+const int PINSERVO_angle_open = 23;    // Open value @50Hz 23
+
+const int RINGSERVO_angle_silent = 55;
+const int RINGSERVO_speed = 5;
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
