@@ -393,8 +393,11 @@ void loop(){
       deployBabyCans();
     }else if(reader.equals("[CPR]")){
       closeDeploy();
-    }else{
-      PINSERVO_angle_close = reader.toInt();
+    }else if(reader.equals("[RER]")){
+      //removeRing();
+      //PINSERVO_angle_close = reader.toInt();
+    } else {
+      Serial.print("{F:WRN,"+reader+" is not a command;}");
     }
   }
 
