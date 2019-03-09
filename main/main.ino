@@ -209,7 +209,7 @@ void setup(){
 
   // --------------- INITIALIZING SENSORS ------------------------ //
 
-  // fram disk
+  // FRAM disk
   if(!FRAMDisk.begin()){
 
   }
