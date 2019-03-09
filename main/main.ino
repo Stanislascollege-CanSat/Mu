@@ -379,19 +379,19 @@ void loop(){
 
   if(Serial.available()){
     String reader = Serial.readString();
-    if(reader.equals("oP")){
+    if(reader.equals("[OPP]")){
       openPins();
-    }else if(reader.equals("cP")){
+    }else if(reader.equals("[CLP]")){
       closePins();
-    }else if(reader.equals("oR")){
+    }else if(reader.equals("[OPR]")){
       openRing();
-    }else if(reader.equals("cR")){
+    }else if(reader.equals("[CLR]")){
       closeRing();
-    }else if(reader.equals("sR")){
+    }else if(reader.equals("[STR]")){
       stopRing();
-    }else if(reader.equals("deploy")){
+    }else if(reader.equals("[DEP]")){
       deployBabyCans();
-    }else if(reader.equals("close")){
+    }else if(reader.equals("[CPR]")){
       closeDeploy();
     }else{
       PINSERVO_angle_close = reader.toInt();
