@@ -269,7 +269,7 @@ void openRing(){
   if(!RINGSERVO_turning){
     //pwm.setPin(SERVO_HULL, 1);
     //delay(200);
-    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
     RINGSERVO_turning = true;
     RINGSERVO_direction = true;
     RINGSERVO_startRecord = millis();
@@ -280,7 +280,7 @@ void closeRing(){
   if(!RINGSERVO_turning){
     //pwm.setPin(SERVO_HULL, 1);
     //delay(200);
-    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
     RINGSERVO_turning = true;
     RINGSERVO_direction = false;
     RINGSERVO_startRecord = millis();
