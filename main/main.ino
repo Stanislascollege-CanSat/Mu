@@ -495,7 +495,7 @@ void loop(){
     dataPointRH += "G3:" + String(GPS_fix) + ";";
     dataPointRH += "GN:" + String(GPS_satellites) + ";";
     dataPointRH += "AP:" + String(BMP_airpressure) + ";";
-    dataPointRH += "AT:" + String(BMP_temperature) + ";";
+    dataPointRH += "AT:" + String(BMP_temperature, 1) + ";";
     dataPointRH += "AL:" + String(BMP_altitude) + ";";
     dataPointRH += "HM:" + String(Si7021_humidity) + ";";
     dataPointRH += "AX:" + String(IMU_Acc_X) + ";";
