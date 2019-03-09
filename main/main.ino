@@ -543,12 +543,12 @@ void loop(){
     //dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
     dataPointRH += "}";
 
-//    for(int i = 0; i < dataPointRH.length(); ++i){
-//      if(FRAM_LAST_LOCATION < 255000 - FRAM_DATA_BEGIN_LOCATION){
-//        FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH.charAt(i));
-//        FRAM_LAST_LOCATION++;
-//      }
-//    }
+    for(int i = 0; i < dataPointRH.length(); ++i){
+      if(FRAM_LAST_LOCATION < 255000 - FRAM_DATA_BEGIN_LOCATION){
+        FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH.charAt(i));
+        FRAM_LAST_LOCATION++;
+     }
+   }
 
 //    Serial.println("Written " + String(int(FRAM_LAST_LOCATION)) + " bytes in " + String(millis() - startupTime) + " milliseconds");
 //    Serial.println("GPS fix: " + String(GPS_fix));
