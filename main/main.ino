@@ -21,9 +21,6 @@
 //  |                                                                              |  //
 //   ------------------------------------------------------------------------------   //
 
-
-
-
 // INCLUDES
 #include <SPI.h>                      // SPI
 #include <Wire.h>                     // I2C
@@ -36,6 +33,7 @@
 #include <Adafruit_PWMServoDriver.h>  // servo driver
 #include <Adafruit_FRAM_I2C.h>        // FRAM
 #include <Adafruit_GPS.h>             // GPS
+
 #include <MPU9250.h>                  // IMU
 
 // PIN DEFINITIONS
@@ -83,10 +81,7 @@ uint64_t FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
 Adafruit_GPS Sensor_GPS(&Serial1);
 MPU9250 Sensor_Motion(Wire, 0x68);
 
-
 unsigned int startupTime;
-
-
 
 // VARIABLES TO STORE THE NEWEST MEASUREMENTS
 float BMP_temperature;
@@ -123,23 +118,17 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
-
-
 bool DEPLOY_COMMAND_TRIGGERED;
-
 int RINGSERVO_startRecord;
 bool RINGSERVO_turning;
 bool RINGSERVO_direction;
 int RINGSERVO_angle_silent;
 int RINGSERVO_speed;
-
 int PINSERVO_startRecord;
 bool PINSERVO_turning;
 bool PINSERVO_direction;
 int PINSERVO_angle_close;
 int PINSERVO_angle_open;
-
-
 //
 // SETUP FUNCTION
 //
@@ -150,7 +139,6 @@ void setup(){
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
   pwm.setPWMFreq(60); // Suitable frequency for most servo's.
-
   RINGSERVO_angle_silent = 78;
   RINGSERVO_speed = 50;
   PINSERVO_angle_close = 12;
@@ -178,7 +166,7 @@ void setup(){
   // DECLARING PINS
   pinMode(PIN_RH_RST, OUTPUT);
   digitalWrite(PIN_RH_RST, HIGH);
-  
+
   // --------------- Startup charm -------------------- //
   tone(PIN_BUZZ, 1000);
   digitalWrite(PIN_MCU_LED, HIGH);
@@ -199,31 +187,24 @@ void setup(){
   digitalWrite(PIN_RH_RST, HIGH);
   delay(10);
 
-
-  
   if(!RHNetwork.init()){
     while(1);
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
-
   if(!RHDriver.setFrequency(RH_DRIVER_FREQ)){
     while(1);
     //exit(12);
   }
 
   // --------------- Setting RH_Driver TxPower to 23 (maximum) -------------------- //
-
   RHDriver.setTxPower(23, false);
 
   // --------------- Setting #retries for RH_Datagram -------------------- //
-
   RHNetwork.setRetries(0);
 
   // --------------- Setting duration timeout for RH_Datagram -------------------- //
-
   RHNetwork.setTimeout(0);
-
 
   // --------------- INITIALIZING SENSORS ------------------------ //
 
@@ -340,7 +321,6 @@ void closeDeploy(){
   closeRing();
 }
 
-
 //
 // LOOP FUNCTION
 //
@@ -371,7 +351,6 @@ void loop(){
       pwm.setPin(SERVO_PINS, 0);
     }
   }
-
 
   if(RINGSERVO_turning && !DEPLOY_COMMAND_TRIGGERED){
     //Serial.println("stopping servo");
@@ -422,8 +401,6 @@ void loop(){
     }
   }
 
-  
-  
   Sensor_GPS.read();
   if (Sensor_GPS.newNMEAreceived()) {
     // a tricky thing here is if we print the NMEA sentence, or data
@@ -436,14 +413,8 @@ void loop(){
   if(int(millis()) % 500 == 0){
     // READING SENSORS
     Sensor_Motion.readSensor();
-
-
-
-
     if(Sensor_SGP30.IAQmeasure()){
-
     }
-
     // READING SENSOR DATA
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
@@ -585,9 +556,6 @@ void loop(){
 //    Serial.println("GPS fix: " + String(GPS_fix));
 
     // RELEASE SAFETY PROTOCOL
-    
-    
-
 
     BMP_PREVIOUS_altitude = BMP_altitude;
   }
@@ -609,5 +577,4 @@ void loop(){
       FRAMDisk.write8(0x0, 0);
     }
   }
-
 }
