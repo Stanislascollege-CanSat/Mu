@@ -145,11 +145,13 @@ void setup(){
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
   pwm.setPWMFreq(60); // Suitable frequency for most servo's.
+
+  // close pins
   pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
   delay(300);
   pwm.setPin(SERVO_PINS, 0);
-//  // open hull
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+  // open hull
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
   delay(200);
