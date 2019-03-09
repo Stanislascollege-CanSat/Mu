@@ -229,9 +229,7 @@ void setup(){
   }
 
   // Sensor_Si7021
-//  if(!Sensor_Si7021.begin()){
-//
-//  }
+  if(!Sensor_Si7021.begin()){}
 
   // Adafruit_GPS
   Sensor_GPS.begin(9600);
