@@ -90,7 +90,7 @@ Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x44);
 // SENSOR OBJECT DECLARATION
 Adafruit_BMP280 Sensor_BMP;
 Adafruit_SGP30 Sensor_SGP30;
-//Adafruit_Si7021 Sensor_Si7021 = Adafruit_Si7021();
+Adafruit_Si7021 Sensor_Si7021 = Adafruit_Si7021();
 Adafruit_FRAM_I2C FRAMDisk = Adafruit_FRAM_I2C();
 uint64_t FRAM_DATA_BEGIN_LOCATION = 10;
 uint64_t FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
