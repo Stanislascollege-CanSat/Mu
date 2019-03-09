@@ -68,6 +68,17 @@ const int PINSERVO_angle_open = 23;    // Open value @50Hz 23
 
 const int RINGSERVO_angle_silent = 55;
 const int RINGSERVO_speed = 5;
+
+bool DEPLOY_COMMAND_TRIGGERED;
+
+int RINGSERVO_startRecord;
+bool RINGSERVO_turning;
+bool RINGSERVO_direction;
+
+int PINSERVO_startRecord;
+bool PINSERVO_turning;
+bool PINSERVO_direction;
+
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
