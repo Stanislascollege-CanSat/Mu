@@ -152,7 +152,7 @@ int PINSERVO_angle_open;
 
 void setup(){
   Serial.begin(115200);
-  //while(!Serial);
+  while(!Serial);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
   pwm.setPWMFreq(60); // Suitable frequency for most servo's.
