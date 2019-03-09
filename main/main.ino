@@ -24,13 +24,13 @@
 // INCLUDES
 #include <SPI.h>                      // SPI
 #include <Wire.h>                     // I2C
+#include <Adafruit_PWMServoDriver.h>  // servo driver
 #include <RH_RF95.h>                  // Radio
 #include <RHReliableDatagram.h>       // Network
 #include <Adafruit_Sensor.h>          // Shared Class
 #include <Adafruit_SGP30.h>           // TVOC & eCO2
-//#include <Adafruit_Si7021.h>          // Humidity & Airtemperature
+#include <Adafruit_Si7021.h>          // Humidity & Airtemperature
 #include <Adafruit_BMP280.h>          // Airtemperature & Airpressure
-#include <Adafruit_PWMServoDriver.h>  // servo driver
 #include <Adafruit_FRAM_I2C.h>        // FRAM
 #include <Adafruit_GPS.h>             // GPS
 
