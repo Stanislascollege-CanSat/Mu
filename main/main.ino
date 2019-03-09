@@ -413,8 +413,7 @@ void loop(){
   if(int(millis()) % 200 == 0){
     // READING SENSORS
     Sensor_Motion.readSensor();
-    if(Sensor_SGP30.IAQmeasure()){
-    }
+    if(Sensor_SGP30.IAQmeasure()) {}
     // READING SENSOR DATA
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
