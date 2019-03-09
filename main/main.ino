@@ -572,6 +572,10 @@ void loop(){
       FRAMDisk.write8(0x2, (CO2_baseline & 0xff));
       FRAMDisk.write8(0x3, (TVOC_baseline >> 8));
       FRAMDisk.write8(0x4, (TVOC_baseline & 0xff));
+      // Inform GCS.
+      String messageBaseline = "{F:LOG,[SGP30] Baseline set.;}";
+      RHNetwork.sendtoWait((uint8_t*)messageBaseline.c_str(), messageBaseline.length(), RH_CHANNEL_GS_ALPHA);
+      RHNetwork.waitPacketSent();
 //      Serial.println("Set baselines to " + String(CO2_baseline) + " and " + String(TVOC_baseline));
 //      Serial.println(CO2_baseline);
 //      Serial.println(TVOC_baseline);
