@@ -97,6 +97,7 @@ uint64_t FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
 Adafruit_GPS Sensor_GPS(&Serial1);
 MPU9250 Sensor_Motion(Wire, 0x68);
 
+// TIME SINCE STARTUP
 unsigned int startupTime;
 
 // VARIABLES TO STORE THE NEWEST MEASUREMENTS
@@ -145,9 +146,9 @@ bool PINSERVO_turning;
 bool PINSERVO_direction;
 int PINSERVO_angle_close;
 int PINSERVO_angle_open;
-//
-// SETUP FUNCTION
-//
+// --------------------------------------------------- //
+// --------------- SETUP FUNCTION -------------------- //
+// --------------------------------------------------- //
 
 void setup(){
   Serial.begin(115200);
