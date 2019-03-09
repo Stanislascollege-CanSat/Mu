@@ -150,11 +150,11 @@ void setup(){
   pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
   delay(300);
   pwm.setPin(SERVO_PINS, 0);
-  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
   // open hull
+  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
-  delay(200);
+  delay(300);
   pwm.setPin(SERVO_HULL, 0);
 
   RINGSERVO_turning = false;
