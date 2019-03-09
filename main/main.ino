@@ -144,7 +144,8 @@ void setup(){
   while(!Serial);
   // --------------- Set pin and hull position -------------------- //
   pwm.begin();
-  pwm.setPWMFreq(60); // Suitable frequency for most servo's.
+  pwm.setPWMFreq(50); // Derived from MG90S datasheet.
+  delay(10);
 
   // close pins
   pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
