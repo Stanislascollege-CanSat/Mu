@@ -44,7 +44,7 @@ const unsigned short int PIN_RH_INT = 6;     //
 const unsigned short int PIN_BUZZ = 11;      // Buzzer
 const unsigned short int PIN_A_BAT = 9;      // Battery voltage
 
-const int PIN_MCU_LED = LED_BUILTIN;
+const int PIN_MCU_LED = LED_BUILTIN;         // LED
 
 // RADIO CHANNELS
 const unsigned short int RH_CHANNEL_GS_ALPHA = 1;   //
