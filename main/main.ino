@@ -410,7 +410,7 @@ void loop(){
       return; // we can fail to parse a sentence in which case we should just wait for another
   }
 
-  if(int(millis()) % 500 == 0){
+  if(int(millis()) % 200 == 0){
     // READING SENSORS
     Sensor_Motion.readSensor();
     if(Sensor_SGP30.IAQmeasure()){
