@@ -418,8 +418,8 @@ void loop(){
     BMP_temperature = Sensor_BMP.readTemperature();
     BMP_airpressure = Sensor_BMP.readPressure();
     BMP_altitude = Sensor_BMP.readAltitude(992);
-    //Si7021_humidity = Sensor_Si7021.readHumidity();
-    //Si7021_temperature = Sensor_Si7021.readTemperature();
+    Si7021_humidity = Sensor_Si7021.readHumidity();
+    Si7021_temperature = Sensor_Si7021.readTemperature();
     // CALIBRATING SGP30
     //Sensor_SGP30.setHumidity(getAbsoluteHumidity(Si7021_humidity, Si7021_temperature));
     //
