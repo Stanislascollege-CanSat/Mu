@@ -64,7 +64,7 @@ const unsigned short int SERVO_PINS = 0;
 const unsigned short int SERVO_HULL = 1;
 
 const int PINSERVO_angle_close = 0;    // Close value @50Hz 0
-const int PINSERVO_angle_open = 23;    // Open value @50Hz 23
+const int PINSERVO_angle_open = 28;    // Open value @50Hz 28
 
 const int RINGSERVO_angle_silent = 55;
 const int RINGSERVO_speed = 5;
