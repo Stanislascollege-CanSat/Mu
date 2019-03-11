@@ -160,7 +160,7 @@ int GPS_satellites;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = -3;
+const int DEPS_BORDER_HEIGHT = -5;
 bool DEPS_DEPLOYED;
 
 
@@ -618,12 +618,12 @@ void loop(){
   }
 
   // RELEASE SAFETY PROTOCOL
-  Serial.println(DEPS_DEPLOYED);
+  //Serial.println(DEPS_DEPLOYED);
   if((int(millis()) % 50 == 0) && !DEPS_DEPLOYED){
     BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL/100);
     Serial.println(BMP_altitude);
 
-    if(millis() - startupTime > sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) * 500){
+    if(millis() - startupTime > sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) * 300){
       CALC_verticalVelocity = pow((BMP_altitude - BMP_PREVIOUS_altitudes[3])/(float(millis())/1000 - float(listEndMeasureTime[3])/1000), 3);
       //Serial.println(CALC_verticalVelocity);
 
