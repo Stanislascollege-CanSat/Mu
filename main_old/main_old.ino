@@ -101,30 +101,17 @@ MPU9250 Sensor_Motion(Wire, 0x68);
 unsigned int startupTime;
 unsigned int loopTime;
 unsigned int prevEndMeasureTime;
-unsigned int listEndMeasureTime[] = {0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0};
 
 // VARIABLES FOR CONFIG
-int AIRPRESSURE_SEA_LEVEL;
+const int AIRPRESSURE_SEA_LEVEL = 1015;
 
 // VARIABLES TO STORE THE NEWEST MEASUREMENTS
 float BMP_temperature;
 float BMP_airpressure;
 float BMP_altitude;
-float BMP_PREVIOUS_altitudes[] = {0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0};
-float CALC_verticalVelocity;
-float CALC_prevVerticalVelocity[] = {0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0};
+float BMP_PREVIOUS_altitude;
+float BMP_DERIV_HEIGHT;
+float BMP_PREVIOUS_DERIV_HEIGHT;
 float Si7021_humidity;
 float Si7021_temperature;
 float SGP30_TVOC;
@@ -160,7 +147,7 @@ int GPS_satellites;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = -3;
+const int DEPS_BORDER_HEIGHT = -37;
 bool DEPS_DEPLOYED;
 
 
@@ -186,7 +173,7 @@ void setup(){
   delay(300);
   pwm.setPin(SERVO_PINS, 0);
   // open hull
-  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
   delay(300);
@@ -280,22 +267,10 @@ void setup(){
   DEPS_DETECTED_PARABOLA = false;
   DEPS_PASSED_HEIGHT_DOWN = false;
   DEPS_DEPLOYED = false;
+  BMP_PREVIOUS_altitude = 0;
+  BMP_DERIV_HEIGHT = 0;
+  BMP_PREVIOUS_DERIV_HEIGHT = 0;
   prevEndMeasureTime = 0;
-//  BMP_PREVIOUS_altitudes = {};
-//  CALC_prevVerticalVelocity = {};
-
-//  for(int i = 0; i < sizeof(BMP_PREVIOUS_altitudes); ++i){
-//    BMP_PREVIOUS_altitudes[i] = 0;
-//  }
-//
-//  for(int i = 0; i < sizeof(CALC_prevVerticalVelocity); ++i){
-//    CALC_prevVerticalVelocity[i] = 0;
-//  }
-
-  delay(2000);
-  
-  AIRPRESSURE_SEA_LEVEL = Sensor_BMP.readPressure();
-  Serial.println(AIRPRESSURE_SEA_LEVEL);
   
 
   // --------------- Confirming boot -------------------- //
@@ -542,6 +517,48 @@ void loop(){
 //    Serial.print("alti:"); Serial.println(GPS_altitude);
 //    Serial.print("stli:"); Serial.println(GPS_satellites);
 
+    // RELEASE SAFETY PROTOCOL
+    //Serial.println("DTime: " + String(prevEndMeasureTime));
+    if(prevEndMeasureTime > 0){
+      if((!(abs(BMP_altitude - BMP_PREVIOUS_altitude) > 50) && (abs(BMP_altitude - BMP_PREVIOUS_altitude) > 0) && (BMP_PREVIOUS_altitude < DEPS_BORDER_HEIGHT && BMP_altitude >= DEPS_BORDER_HEIGHT) && !DEPS_PASSED_HEIGHT_UP)){
+        DEPS_PASSED_HEIGHT_UP = true;
+        Serial.println("DEPS_PASSED_HEIGHT_UP");
+        digitalWrite(PIN_MCU_LED, HIGH);
+      }else if((!(abs(BMP_altitude - BMP_PREVIOUS_altitude) > 50) && (abs(BMP_altitude - BMP_PREVIOUS_altitude) > 0) && (BMP_PREVIOUS_altitude > DEPS_BORDER_HEIGHT && BMP_altitude <= DEPS_BORDER_HEIGHT) && !DEPS_PASSED_HEIGHT_DOWN)){
+        DEPS_PASSED_HEIGHT_DOWN = true;
+        Serial.println("DEPS_PASSED_HEIGHT_DOWN");
+        digitalWrite(PIN_MCU_LED, LOW);
+      }
+    }
+
+    if(prevEndMeasureTime > 0){
+      BMP_DERIV_HEIGHT = (BMP_altitude - BMP_PREVIOUS_altitude)/(float((millis()/1000 - prevEndMeasureTime/1000)));
+      Serial.println((float((millis()/1000 - prevEndMeasureTime/1000))));
+      if(((BMP_PREVIOUS_DERIV_HEIGHT > 0 && BMP_DERIV_HEIGHT <= 0) && (abs(BMP_DERIV_HEIGHT - BMP_PREVIOUS_DERIV_HEIGHT) > 1)) && !DEPS_DETECTED_PARABOLA){
+        DEPS_DETECTED_PARABOLA = true;
+        digitalWrite(PIN_MCU_LED, HIGH);
+      }
+
+
+      if(((DEPS_PASSED_HEIGHT_UP || DEPS_DETECTED_PARABOLA) && DEPS_PASSED_HEIGHT_DOWN) && !DEPS_DEPLOYED /*&& BMP_altitude >= 200*/){
+        deployBabyCans();
+        Serial.println("DEPLOY!");
+        DEPS_DEPLOYED = true;
+      }
+
+      
+    }
+
+    Serial.println("Altitude: " + String(BMP_altitude));
+    Serial.println("PAltitude: " + String(BMP_PREVIOUS_altitude));
+    Serial.println("Deriv-height: " + String(BMP_DERIV_HEIGHT) + "\n\n");
+
+    BMP_PREVIOUS_altitude = BMP_altitude;
+    BMP_PREVIOUS_DERIV_HEIGHT = BMP_DERIV_HEIGHT;
+
+    prevEndMeasureTime = millis();
+
+
 
     // WORKING WITH THE DATA
     String dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
@@ -574,8 +591,8 @@ void loop(){
 
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
     RHNetwork.waitPacketSent();
-//    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
-//    RHNetwork.waitPacketSent();
+    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
+    RHNetwork.waitPacketSent();
 
     dataPointRH = "{";
     dataPointRH += "GT:" + GPS_timestring + ";";
@@ -605,78 +622,16 @@ void loop(){
     //dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
     dataPointRH += "}";
 
-//    for(int i = 0; i < dataPointRH.length(); ++i){
-//      if(FRAM_LAST_LOCATION < (255000 - FRAM_DATA_BEGIN_LOCATION)){
-//        FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH.charAt(i));
-//        FRAM_LAST_LOCATION++;
-//      }
-//    }
+    for(int i = 0; i < dataPointRH.length(); ++i){
+      if(FRAM_LAST_LOCATION < (255000 - FRAM_DATA_BEGIN_LOCATION)){
+        FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH.charAt(i));
+        FRAM_LAST_LOCATION++;
+      }
+    }
 
 //    Serial.println("Written " + String(int(FRAM_LAST_LOCATION)) + " bytes in " + String(millis() - startupTime) + " milliseconds");
 //    Serial.println("GPS fix: " + String(GPS_fix));
 
-  }
-
-  // RELEASE SAFETY PROTOCOL
-  Serial.println(DEPS_DEPLOYED);
-  if((int(millis()) % 50 == 0) && !DEPS_DEPLOYED){
-    BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL/100);
-    Serial.println(BMP_altitude);
-
-    if(millis() - startupTime > sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) * 500){
-      CALC_verticalVelocity = pow((BMP_altitude - BMP_PREVIOUS_altitudes[3])/(float(millis())/1000 - float(listEndMeasureTime[3])/1000), 3);
-      //Serial.println(CALC_verticalVelocity);
-
-      for(int i = 0; i < sizeof(BMP_PREVIOUS_altitudes)/sizeof(float); ++i){
-        if(BMP_PREVIOUS_altitudes[i] < DEPS_BORDER_HEIGHT && BMP_altitude > DEPS_BORDER_HEIGHT){
-          // CanSat passed DEPS_BORDER_HEIGHT border with upwards velocity
-          DEPS_PASSED_HEIGHT_UP = true;
-          Serial.println("-------------------------PASSED UP!");
-        }else if(BMP_PREVIOUS_altitudes[i] > DEPS_BORDER_HEIGHT && BMP_altitude < DEPS_BORDER_HEIGHT){
-          // CanSat passed DEPS_BORDER_HEIGHT border with downwards velocity
-          DEPS_PASSED_HEIGHT_DOWN = true;
-          Serial.println("-------------------------PASSED DOWN!");
-        }
-      }
-
-      for(int i = 0; i < sizeof(CALC_prevVerticalVelocity)/sizeof(float); ++i){
-        if(CALC_prevVerticalVelocity[i] > 6 && CALC_verticalVelocity < -6){
-          // Detected a sign switch in vertical velocity
-          DEPS_DETECTED_PARABOLA = true;
-        Serial.println("-------------------------PARABOLA!");
-          //tone(PIN_BUZZ, 1000);
-          break;
-          //Serial.println("parabola!");
-        }
-      }
-
-      if((DEPS_PASSED_HEIGHT_UP || DEPS_DETECTED_PARABOLA) && DEPS_PASSED_HEIGHT_DOWN){
-        deployBabyCans();
-        DEPS_DEPLOYED = true;
-        Serial.println("-------------------------DEPLOY!");
-      }
-
-      
-
-      for(int i = sizeof(CALC_prevVerticalVelocity)/sizeof(float) - 1; i > 0; --i){
-        CALC_prevVerticalVelocity[i] = CALC_prevVerticalVelocity[i-1];
-      }
-      CALC_prevVerticalVelocity[0] = CALC_verticalVelocity;
-    }
-    
-
-    
-    for(int i = sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) - 1; i > 0; --i){
-      BMP_PREVIOUS_altitudes[i] = BMP_PREVIOUS_altitudes[i-1];
-    }
-    BMP_PREVIOUS_altitudes[0] = BMP_altitude;
-
-    prevEndMeasureTime = millis();
-
-    for(int i = sizeof(listEndMeasureTime)/sizeof(unsigned int) - 1; i > 0; --i){
-      listEndMeasureTime[i] = listEndMeasureTime[i-1];
-    }
-    listEndMeasureTime[0] = prevEndMeasureTime;
   }
 
   // MEASURE TEMPERATURE FOR DEPLOY
