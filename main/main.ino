@@ -569,7 +569,7 @@ void loop(){
     dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
     dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
     dataPointRH += "O2:" + String(SGP30_CO2) + ";";
-    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
+    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/102.4) + ";";
     dataPointRH += "}";
 
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
