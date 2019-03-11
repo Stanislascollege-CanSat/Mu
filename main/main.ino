@@ -225,14 +225,15 @@ void setup(){
   digitalWrite(PIN_RH_RST, HIGH);
   delay(10);
 
-  if(RHNetwork.init()){
+  if(!RHNetwork.init()){
+    RH_INIT = "0";
+  } else {
     RH_INIT = "2";
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
   if(!RHDriver.setFrequency(RH_DRIVER_FREQ)){
     while(1);
-    //exit(12);
   }
 
   // --------------- Setting RH_Driver TxPower to 23 (maximum) -------------------- //
@@ -278,9 +279,14 @@ void setup(){
   Sensor_GPS.sendCommand(PGCMD_ANTENNA);
 
   // Sensor_MPU-9250 (IMU)
-  if(Sensor_Motion.begin() < 0){
+  int IMU_STATUS;
+  IMU_STATUS = Sensor_Motion.begin();
+  if (IMU_STATUS) {
     MPU9250_INIT = "2";
   }
+  //if(Sensor_Motion.begin() < 0){
+  //  MPU9250_INIT = "2";
+  //}
 
   // --------------- Set DEPS variables ----------------- //
   DEPS_PASSED_HEIGHT_UP = false;
@@ -313,7 +319,7 @@ void setup(){
   confirmBoot += "SMC:" + SGP30_INIT + ";";
   confirmBoot += "SMS:" + SI7021_INIT + ";";
   confirmBoot += "SMG:" + GPS_INIT + ";";
-  confirmBoot += "SMR:" + MPU-9250_INIT + ";";
+  confirmBoot += "SMR:" + MPU9250_INIT + ";";
   confirmBoot += "}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
 
@@ -586,6 +592,7 @@ void loop(){
     dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/102.4) + ";";
     dataPointRH += "}";
 
+    //Serial.print("Sending data now");
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
     RHNetwork.waitPacketSent();
 //    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
