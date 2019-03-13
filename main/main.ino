@@ -572,10 +572,12 @@ void loop(){
     dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
     dataPointRH += "}";
 
-    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
-    RHNetwork.waitPacketSent();
+//    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
+//    RHNetwork.waitPacketSent();
 //    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
 //    RHNetwork.waitPacketSent();
+
+    Serial.print(dataPointRH);
 
     dataPointRH = "{";
     dataPointRH += "GT:" + GPS_timestring + ";";
