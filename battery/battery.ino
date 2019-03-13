@@ -1,8 +1,7 @@
 #define VBATPIN A7
+
 void setup() {
-
 Serial.begin(115200);
-
 }
 
 void loop() {
@@ -13,5 +12,4 @@ void loop() {
   measuredvbat /= 102.4; // convert to voltage
   Serial.print("VBat: " ); Serial.println(measuredvbat);
   Serial.print(vbat);
-
 }

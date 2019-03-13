@@ -155,7 +155,6 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
-
 // DEPLOYMENT SAFETY REQUIREMENT VARIABLES
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
@@ -163,11 +162,14 @@ bool DEPS_PASSED_HEIGHT_DOWN;
 const int DEPS_BORDER_HEIGHT = -5;
 bool DEPS_DEPLOYED;
 
-
-
-
-
-
+// STATUS STRIGNS
+String RH_INIT = "0";
+String FRAM_INIT = "0";
+String BMP_INIT = "0";
+String SGP30_INIT = "0";
+String SI7021_INIT = "0";
+String GPS_INIT = "2";
+String MPU9250_INIT = "0";
 
 // --------------------------------------------------- //
 // --------------- SETUP FUNCTION -------------------- //
@@ -224,13 +226,14 @@ void setup(){
   delay(10);
 
   if(!RHNetwork.init()){
-    while(1);
+    RH_INIT = "0";
+  } else {
+    RH_INIT = "2";
   }
 
   // --------------- Setting RH_Driver frequency -------------------- //
   if(!RHDriver.setFrequency(RH_DRIVER_FREQ)){
     while(1);
-    //exit(12);
   }
 
   // --------------- Setting RH_Driver TxPower to 23 (maximum) -------------------- //
@@ -245,13 +248,13 @@ void setup(){
   // --------------- INITIALIZING SENSORS ------------------------ //
 
   // FRAM disk
-  if(!FRAMDisk.begin()){
-
+  if(FRAMDisk.begin()){
+    FRAM_INIT = "2";
   }
 
   // Sensor_BMP280
-  if(!Sensor_BMP.begin()){
-
+  if(Sensor_BMP.begin()){
+    BMP_INIT = "2";
   }
 
   // Sensor_SGP30
@@ -261,10 +264,13 @@ void setup(){
       uint16_t TVOC_baseline = (FRAMDisk.read8(0x3) << 8) | (FRAMDisk.read8(0x4) & 0xff);
       Sensor_SGP30.setIAQBaseline(CO2_baseline, TVOC_baseline);
     }
+    SGP30_INIT = "2";
   }
 
   // Sensor_Si7021
-  if(!Sensor_Si7021.begin()){}
+  if(Sensor_Si7021.begin()){
+    SI7021_INIT = "2";
+  }
 
   // Adafruit_GPS
   Sensor_GPS.begin(9600);
@@ -273,7 +279,14 @@ void setup(){
   Sensor_GPS.sendCommand(PGCMD_ANTENNA);
 
   // Sensor_MPU-9250 (IMU)
-  if(Sensor_Motion.begin() < 0){}
+  int IMU_STATUS;
+  IMU_STATUS = Sensor_Motion.begin();
+  if (IMU_STATUS) {
+    MPU9250_INIT = "2";
+  }
+  //if(Sensor_Motion.begin() < 0){
+  //  MPU9250_INIT = "2";
+  //}
 
   // --------------- Set DEPS variables ----------------- //
   DEPS_PASSED_HEIGHT_UP = false;
@@ -293,20 +306,29 @@ void setup(){
 //  }
 
   delay(2000);
-  
+
   AIRPRESSURE_SEA_LEVEL = Sensor_BMP.readPressure();
   Serial.println(AIRPRESSURE_SEA_LEVEL);
-  
 
   // --------------- Confirming boot -------------------- //
 
-  String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;}";
+  String confirmBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:2;";
+  confirmBoot += "SMR:" + RH_INIT + ";";
+  confirmBoot += "SMF:" + FRAM_INIT + ";";
+  confirmBoot += "SMB:" + BMP_INIT + ";";
+  confirmBoot += "SMC:" + SGP30_INIT + ";";
+  confirmBoot += "SMS:" + SI7021_INIT + ";";
+  confirmBoot += "SMG:" + GPS_INIT + ";";
+  confirmBoot += "SMR:" + MPU9250_INIT + ";";
+  confirmBoot += "}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
-    for(int i = 100; i < 4000; i += 5){
-      tone(PIN_BUZZ, i);
-      delay(2);
-    }
-    noTone(PIN_BUZZ);
+
+  // --------------- Confirming setup charm -------------------- //
+  for(int i = 100; i < 4000; i += 5){
+    tone(PIN_BUZZ, i);
+    delay(2);
+  }
+  noTone(PIN_BUZZ);
 
   startupTime = millis();
 }
@@ -384,7 +406,6 @@ void loop(){
   loopTime = millis();
   //Serial.print("LOOP");
 
-
   // RADIO RECEIVE COMMAND
 //  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
 //  uint8_t LEN = sizeof(BUF);
@@ -399,7 +420,6 @@ void loop(){
 //      deployBabyCans();
 //    }
 //  }
-
 
   if(PINSERVO_turning){
     if(millis() - PINSERVO_startRecord > 400){
@@ -569,11 +589,11 @@ void loop(){
     dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
     dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
     dataPointRH += "O2:" + String(SGP30_CO2) + ";";
-    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
+    dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/102.4) + ";";
     dataPointRH += "}";
 
-//    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
-//    RHNetwork.waitPacketSent();
+    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
+    RHNetwork.waitPacketSent();
 //    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
 //    RHNetwork.waitPacketSent();
 
@@ -658,16 +678,16 @@ void loop(){
         Serial.println("-------------------------DEPLOY!");
       }
 
-      
+
 
       for(int i = sizeof(CALC_prevVerticalVelocity)/sizeof(float) - 1; i > 0; --i){
         CALC_prevVerticalVelocity[i] = CALC_prevVerticalVelocity[i-1];
       }
       CALC_prevVerticalVelocity[0] = CALC_verticalVelocity;
     }
-    
 
-    
+
+
     for(int i = sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) - 1; i > 0; --i){
       BMP_PREVIOUS_altitudes[i] = BMP_PREVIOUS_altitudes[i-1];
     }
