@@ -22,6 +22,7 @@
 //   ------------------------------------------------------------------------------   //
 
 // INCLUDES
+#include <ArduinoSTL.h>               // Arduino STL
 #include <SPI.h>                      // SPI
 #include <Wire.h>                     // I2C
 #include <Adafruit_PWMServoDriver.h>  // servo driver
@@ -155,6 +156,9 @@ float GPS_angle;
 float GPS_altitude;
 int GPS_satellites;
 
+// LOOP READ DATA FROM SENSOR TIMER
+unsigned int lastReadSensorTimeRecord;
+
 // DEPLOYMENT SAFETY REQUIREMENT VARIABLES
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
@@ -170,6 +174,9 @@ String SGP30_INIT = "0";
 String SI7021_INIT = "0";
 String GPS_INIT = "2";
 String MPU9250_INIT = "0";
+
+// DATA STRINGS
+std::vector<String> STORED_DATA_POINTS;
 
 // --------------------------------------------------- //
 // --------------- SETUP FUNCTION -------------------- //
@@ -247,6 +254,12 @@ void setup(){
 
   // --------------- INITIALIZING SENSORS ------------------------ //
 
+  delay(1000);
+  String sendStartBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:1;}";
+  RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_DELTA);
+  RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_ALPHA);
+  delay(2000);
+
   // FRAM disk
   if(FRAMDisk.begin()){
     FRAM_INIT = "2";
@@ -294,6 +307,7 @@ void setup(){
   DEPS_PASSED_HEIGHT_DOWN = false;
   DEPS_DEPLOYED = false;
   prevEndMeasureTime = 0;
+  lastReadSensorTimeRecord = 0;
 //  BMP_PREVIOUS_altitudes = {};
 //  CALC_prevVerticalVelocity = {};
 
@@ -322,6 +336,7 @@ void setup(){
   confirmBoot += "SMR:" + MPU9250_INIT + ";";
   confirmBoot += "}";
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
+  RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_ALPHA);
 
   // --------------- Confirming setup charm -------------------- //
   for(int i = 100; i < 4000; i += 5){
@@ -404,7 +419,7 @@ void closeDeploy(){
 
 void loop(){
   loopTime = millis();
-  //Serial.print("LOOP");
+  Serial.println("LOOP");
 
   // RADIO RECEIVE COMMAND
 //  uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
@@ -489,7 +504,7 @@ void loop(){
       return; // we can fail to parse a sentence in which case we should just wait for another
   }
 
-  if(int(millis()) % 200 == 0){
+  if(millis() - lastReadSensorTimeRecord > 200){
     // READING SENSORS
     Sensor_Motion.readSensor();
     if(Sensor_SGP30.IAQmeasure()) {}
@@ -593,9 +608,12 @@ void loop(){
     dataPointRH += "}";
 
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
+    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
     RHNetwork.waitPacketSent();
-//    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
-//    RHNetwork.waitPacketSent();
+
+    //STORED_DATA_POINTS.push_back(dataPointRH);
+
+    
 
     Serial.print(dataPointRH);
 
@@ -637,15 +655,30 @@ void loop(){
 //    Serial.println("Written " + String(int(FRAM_LAST_LOCATION)) + " bytes in " + String(millis() - startupTime) + " milliseconds");
 //    Serial.println("GPS fix: " + String(GPS_fix));
 
+    lastReadSensorTimeRecord = int(millis());
+
   }
+
+//  // SENDING STORED POINTS
+//  if(millis() % 5000 == 0){
+//    for(String s : STORED_DATA_POINTS){
+//      RHNetwork.sendtoWait((uint8_t*)s.c_str(), s.length(), RH_CHANNEL_GS_DELTA);
+//      RHNetwork.sendtoWait((uint8_t*)s.c_str(), s.length(), RH_CHANNEL_GS_ALPHA);
+//    }
+//    RHNetwork.waitPacketSent();
+//  }
+
+
+
+  
 
   // RELEASE SAFETY PROTOCOL
   //Serial.println(DEPS_DEPLOYED);
-  if((int(millis()) % 50 == 0) && !DEPS_DEPLOYED){
+  if((int(millis()) % 100 == 0) && !DEPS_DEPLOYED){
     BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL/100);
-    Serial.println(BMP_altitude);
+    //Serial.println(BMP_altitude);
 
-    if(millis() - startupTime > sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) * 300){
+    if(millis() - startupTime > sizeof(BMP_PREVIOUS_altitudes)/sizeof(float) * 500){
       CALC_verticalVelocity = pow((BMP_altitude - BMP_PREVIOUS_altitudes[3])/(float(millis())/1000 - float(listEndMeasureTime[3])/1000), 3);
       //Serial.println(CALC_verticalVelocity);
 
