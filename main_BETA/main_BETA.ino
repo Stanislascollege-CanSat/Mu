@@ -59,7 +59,7 @@ const unsigned short int RH_CHANNEL_MU = 3;         // Available radio-network-c
 const unsigned short int RH_CHANNEL_BETA = 4;       //
 const unsigned short int RH_CHANNEL_RHO = 5;        //
 
-const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_RHO; // Set local channel, used by the programme
+const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_BETA; // Set local channel, used by the programme
 
 const float RH_DRIVER_FREQ = 868.0;   // RHDriver Frequency
 
@@ -531,6 +531,8 @@ void sendAllDataToGS(){
 void clearFRAMDisk(){
   FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
   fram_writeLastPosition(FRAM_LAST_LOCATION);
+  delay(500);
+  Serial.print("{F:LOG," + String(RH_CHANNEL_LOCAL) + "ClearedFRAM;}");
 }
 
 void receiveScriptFromRadio(){
