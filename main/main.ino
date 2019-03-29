@@ -173,8 +173,8 @@ unsigned int lastReadSensorTimeRecord;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = 700;
-const int DEPS_MINIMUM_HEIGHT = 200;
+const int DEPS_BORDER_HEIGHT = 5; /* <----------------------700-------------------------  */
+const int DEPS_MINIMUM_HEIGHT = 2; /* <----------------------200-------------------------  */
 bool DEPS_DEPLOYED;
 int prevCheckDeployTime;
 int prevReadBaselinesTime;
@@ -204,7 +204,7 @@ void setup(){
   appMode = NON_FLIGHT_MODE;
   SET_FLIGHT_MODE_ALLOWED = false;
 
-  
+
   Serial.begin(115200);
   //while(!Serial);
   // --------------- Set pin and hull position -------------------- //
@@ -530,6 +530,8 @@ void sendAllDataToGS(){
 void clearFRAMDisk(){
   FRAM_LAST_LOCATION = FRAM_DATA_BEGIN_LOCATION;
   fram_writeLastPosition(FRAM_LAST_LOCATION);
+  delay(500);
+  Serial.print("{F:LOG," + String(RH_CHANNEL_LOCAL) + "ClearedFRAM;}");
 }
 
 void receiveScriptFromRadio(){
@@ -587,6 +589,10 @@ void receiveScriptFromRadio(){
 //          RHNetwork.waitPacketSent();
           delay(5000);
           logStatusFlightMode();
+          // Set T0
+          String Sett = "{F:ST0;}";
+          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
+          RHNetwork.waitPacketSent();
           for(int i = 0; i < 3; ++i){
             delay(100);
             tone(PIN_BUZZ, 5000 - i*1000);
@@ -620,14 +626,14 @@ void loop(){
     consoleLogGS("Flightmode unlocked");
   }
 
-  
+
   loopTime = millis();
   //Serial.println("LOOP");
 
   // RADIO RECEIVE COMMAND
   receiveScriptFromRadio();
-  
-  
+
+
 
   if(PINSERVO_turning){
     if(millis() - PINSERVO_startRecord > 400){
@@ -690,6 +696,8 @@ void loop(){
       //PINSERVO_angle_close = reader.toInt();
     }else if(reader.equals("[SAD]")){
       sendAllDataToGS();
+    }else if(reader.equals("[CLF]")){
+      clearFRAMDisk();
     }else {
       Serial.print("{F:WRN,"+reader+" is not a command;}");
     }
@@ -710,7 +718,7 @@ void loop(){
     BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL) + ALTITUDE_CORRECTION;
     if(BMP_altitude >= DEPS_MINIMUM_HEIGHT){
       appMode = FLIGHT_MODE;
-      String toSend = "FLIGHT_MODE";
+      String toSend = "[FLIGHT_MODE]";
       RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
       RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
       RHNetwork.waitPacketSent();
@@ -729,9 +737,9 @@ void loop(){
 
   //receiveScriptFromRadio();
 
-  
 
-  
+
+
 
   if((millis() - lastReadSensorTimeRecord >= 1000) && (appMode == FLIGHT_MODE || appMode == LANDED_MODE)){
     // READING SENSORS
@@ -847,13 +855,13 @@ void loop(){
     dataPointRH += "TS:" + String(millis() - measureTime) + ";";
     dataPointRH += "AL:" + String(BMP_altitude) + ";}";
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
-    
+
     RHNetwork.waitPacketSent();
     //delay(1000);
 
     //STORED_DATA_POINTS.push_back(dataPointRH);
 
-    
+
 
     // STORING DATA IN FRAM
     if(FRAM_AMOUNT_MEASUREMENTS % FRAM_STORE_RATIO == 0){
@@ -876,7 +884,7 @@ void loop(){
       dataPointRH += "G3" + String(GPS_fix);
       dataPointRH += "GN" + String(GPS_satellites);
       dataPointRH += "}";
-  
+
       for(int i = 0; i < dataPointRH.length(); ++i){
         if(FRAM_LAST_LOCATION <= 255000){
           FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH[i]);
@@ -885,12 +893,12 @@ void loop(){
           consoleLogGS("FRAMDisk is full");
         }
       }
-  
+
       fram_writeLastPosition(FRAM_LAST_LOCATION);
     }
 
     receiveScriptFromRadio();
-    
+
 
     lastReadSensorTimeRecord = int(millis());
 
@@ -898,11 +906,11 @@ void loop(){
 
 
 
-  
+
   //
   // RELEASE SAFETY PROTOCOL
   //
-  
+
   //Serial.println(DEPS_DEPLOYED);
   if(((millis() - prevCheckDeployTime >= 100)) && (appMode == FLIGHT_MODE || appMode == LANDED_MODE)){
     BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL) + ALTITUDE_CORRECTION;
