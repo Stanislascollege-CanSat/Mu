@@ -6,8 +6,8 @@
 //  |                                                                              |  //
 //  |                                                                              |  //
 //  |                                                                              |  //
-//  |                                   MOTHERCAN                                  |  //
-//  |                                      FINAL                                   |  //
+//  |                                   BABYCANS                                   |  //
+//  |                                     BETA                                     |  //
 //  |                                                                              |  //
 //  |                                                                              |  //
 //  |                                                                              |  //
@@ -25,7 +25,7 @@
 #include <ArduinoSTL.h>               // Arduino STL
 #include <SPI.h>                      // SPI
 #include <Wire.h>                     // I2C
-#include <Adafruit_PWMServoDriver.h>  // servo driver
+//#include <Adafruit_PWMServoDriver.h>  // servo driver
 #include <RH_RF95.h>                  // Radio
 #include <RHReliableDatagram.h>       // Network
 #include <Adafruit_Sensor.h>          // Shared Class
@@ -59,38 +59,38 @@ const unsigned short int RH_CHANNEL_MU = 3;         // Available radio-network-c
 const unsigned short int RH_CHANNEL_BETA = 4;       //
 const unsigned short int RH_CHANNEL_RHO = 5;        //
 
-const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_MU; // Set local channel, used by the programme
+const unsigned short int RH_CHANNEL_LOCAL = RH_CHANNEL_BETA; // Set local channel, used by the programme
 
 const float RH_DRIVER_FREQ = 868.0;   // RHDriver Frequency
 
-// SERVO VARIABLES
-const int SERVOMIN = 150; // this is the 'minimum' pulse length count (out of 4096)
-const int SERVOMAX = 600; // this is the 'maximum' pulse length count (out of 4096)
-const unsigned short int SERVO_PINS = 0;
-const unsigned short int SERVO_HULL = 1;
-
-const int PINSERVO_angle_close = 0;    // Close value @50Hz 0
-const int PINSERVO_angle_open = 28;    // Open value @50Hz 28
-
-const int RINGSERVO_angle_silent = 55;
-const int RINGSERVO_speed = 5;
-
-bool DEPLOY_COMMAND_TRIGGERED;
-
-int RINGSERVO_startRecord;
-bool RINGSERVO_turning;
-bool RINGSERVO_direction;
-
-int PINSERVO_startRecord;
-bool PINSERVO_turning;
-bool PINSERVO_direction;
+//// SERVO VARIABLES
+//const int SERVOMIN = 150; // this is the 'minimum' pulse length count (out of 4096)
+//const int SERVOMAX = 600; // this is the 'maximum' pulse length count (out of 4096)
+//const unsigned short int SERVO_PINS = 0;
+//const unsigned short int SERVO_HULL = 1;
+//
+//const int PINSERVO_angle_close = 0;    // Close value @50Hz 0
+//const int PINSERVO_angle_open = 28;    // Open value @50Hz 28
+//
+//const int RINGSERVO_angle_silent = 55;
+//const int RINGSERVO_speed = 5;
+//
+//bool DEPLOY_COMMAND_TRIGGERED;
+//
+//int RINGSERVO_startRecord;
+//bool RINGSERVO_turning;
+//bool RINGSERVO_direction;
+//
+//int PINSERVO_startRecord;
+//bool PINSERVO_turning;
+//bool PINSERVO_direction;
 
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
 
 // PWM DECLARATION
-Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x44);
+//Adafruit_PWMServoDriver pwm = Adafruit_PWMServoDriver(0x44);
 
 
 // SENSOR OBJECT DECLARATION
@@ -173,8 +173,8 @@ unsigned int lastReadSensorTimeRecord;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = 700;
-const int DEPS_MINIMUM_HEIGHT = 200;
+const int DEPS_BORDER_HEIGHT = 2;
+const int DEPS_MINIMUM_HEIGHT = 1;
 bool DEPS_DEPLOYED;
 int prevCheckDeployTime;
 int prevReadBaselinesTime;
@@ -208,27 +208,27 @@ void setup(){
   Serial.begin(115200);
   //while(!Serial);
   // --------------- Set pin and hull position -------------------- //
-  pwm.begin();
-  pwm.setPWMFreq(50); // Derived from MG90S datasheet.
-  delay(10);
-
-  // close pins
-  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
-  delay(300);
-  pwm.setPin(SERVO_PINS, 0);
-  // open hull
-  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
-  delay(1000);
-  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
-  delay(300);
-  pwm.setPin(SERVO_HULL, 0);
-
-  RINGSERVO_turning = false;
-  RINGSERVO_direction = false;
-  DEPLOY_COMMAND_TRIGGERED = false;
-
-  PINSERVO_turning = false;
-  PINSERVO_direction = false;
+//  pwm.begin();
+//  pwm.setPWMFreq(50); // Derived from MG90S datasheet.
+//  delay(10);
+//
+//  // close pins
+//  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
+//  delay(300);
+//  pwm.setPin(SERVO_PINS, 0);
+//  // open hull
+//  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+//  delay(1000);
+//  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
+//  delay(300);
+//  pwm.setPin(SERVO_HULL, 0);
+//
+//  RINGSERVO_turning = false;
+//  RINGSERVO_direction = false;
+//  DEPLOY_COMMAND_TRIGGERED = false;
+//
+//  PINSERVO_turning = false;
+//  PINSERVO_direction = false;
 
   // DECLARING PINS
   pinMode(PIN_RH_RST, OUTPUT);
@@ -287,6 +287,10 @@ void setup(){
   if(FRAMDisk.begin()){
     FRAM_INIT = "2";
   }
+
+  uint16_t loc = 10;
+  FRAMDisk.write8(0x5, (loc >> 8));
+  FRAMDisk.write8(0x6, (loc & 0xff));
 
 
   FRAM_LAST_LOCATION = ((FRAMDisk.read8(0x5) << 8) | (FRAMDisk.read8(0x6) & 0xff));
@@ -410,59 +414,59 @@ uint32_t getAbsoluteHumidity(float temperature, float humidity) {
 // DEPLOY BABYCANS
 //
 
-void openRing(){
-  // TURN THE RING OPEN
-  if(!RINGSERVO_turning){
-    //pwm.setPin(SERVO_HULL, 1);
-    //delay(200);
-    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
-    RINGSERVO_turning = true;
-    RINGSERVO_direction = true;
-    RINGSERVO_startRecord = millis();
-  }
-}
-
-void closeRing(){
-  if(!RINGSERVO_turning){
-    //pwm.setPin(SERVO_HULL, 1);
-    //delay(200);
-    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
-    RINGSERVO_turning = true;
-    RINGSERVO_direction = false;
-    RINGSERVO_startRecord = millis();
-  }
-}
-
-void stopRing(){
-  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
-}
-
-void openPins(){
-  //pwm.setPin(SERVO_PINS, 1);
-  //delay(200);
-  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_open, 0, 180, SERVOMIN, SERVOMAX));
-  PINSERVO_turning = true;
-  PINSERVO_startRecord = millis();
-}
-
-void closePins(){
-  //pwm.setPin(SERVO_PINS, 1);
-  //delay(200);
-  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
-  PINSERVO_turning = true;
-  PINSERVO_startRecord = millis();
-}
-
-void deployBabyCans(){
-  openRing();
-  DEPLOY_COMMAND_TRIGGERED = true;
-}
-
-void closeDeploy(){
-  closePins();
-  delay(500);
-  closeRing();
-}
+//void openRing(){
+//  // TURN THE RING OPEN
+//  if(!RINGSERVO_turning){
+//    //pwm.setPin(SERVO_HULL, 1);
+//    //delay(200);
+//    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent - RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+//    RINGSERVO_turning = true;
+//    RINGSERVO_direction = true;
+//    RINGSERVO_startRecord = millis();
+//  }
+//}
+//
+//void closeRing(){
+//  if(!RINGSERVO_turning){
+//    //pwm.setPin(SERVO_HULL, 1);
+//    //delay(200);
+//    pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
+//    RINGSERVO_turning = true;
+//    RINGSERVO_direction = false;
+//    RINGSERVO_startRecord = millis();
+//  }
+//}
+//
+//void stopRing(){
+//  pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
+//}
+//
+//void openPins(){
+//  //pwm.setPin(SERVO_PINS, 1);
+//  //delay(200);
+//  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_open, 0, 180, SERVOMIN, SERVOMAX));
+//  PINSERVO_turning = true;
+//  PINSERVO_startRecord = millis();
+//}
+//
+//void closePins(){
+//  //pwm.setPin(SERVO_PINS, 1);
+//  //delay(200);
+//  pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
+//  PINSERVO_turning = true;
+//  PINSERVO_startRecord = millis();
+//}
+//
+//void deployBabyCans(){
+//  openRing();
+//  DEPLOY_COMMAND_TRIGGERED = true;
+//}
+//
+//void closeDeploy(){
+//  closePins();
+//  delay(500);
+//  closeRing();
+//}
 
 void consoleLogGS(String s){
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG," + s + ";}";
@@ -480,20 +484,20 @@ void logStatus(String stat, int val){
 
 void logStatusFlightMode(){
   if(appMode == NON_FLIGHT_MODE){
-    logStatus("SMU", 0);
+    logStatus("SFM", 0);
   }else if(appMode == FLIGHT_MODE){
-    logStatus("SMU", 1);
+    logStatus("SFM", 1);
   }else if(appMode == LANDED_MODE){
-    logStatus("SMU", 2);
+    logStatus("SFM", 2);
   }
 }
 
-void askDeployPermissionGS(){
-  String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:ASK;}";
-  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
-  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
-  RHNetwork.waitPacketSent();
-}
+//void askDeployPermissionGS(){
+//  String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:ASK;}";
+//  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
+//  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
+//  RHNetwork.waitPacketSent();
+//}
 
 void fram_writeLastPosition(uint16_t a){
   FRAMDisk.write8(0x5, (a >> 8));
@@ -519,12 +523,6 @@ void sendAllDataToGS(){
     RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
     RHNetwork.waitPacketSent();
   }
-  delay(1000);
-  sendBuffer = "{F:LOG," + String(RH_CHANNEL_LOCAL) + "SentAllData;}";
-  Serial.print(sendBuffer);
-  RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
-  RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
-  RHNetwork.waitPacketSent();
 }
 
 void clearFRAMDisk(){
@@ -561,7 +559,7 @@ void receiveScriptFromRadio(){
     }
 
     for(String s : RHcommandList){
-      if(s.equals("DEP")){
+      /*if(s.equals("DEP")){
         deployBabyCans();
         DEPS_DEPLOYED = true;
         Serial.println("-------------------------DEPLOY!");
@@ -576,7 +574,7 @@ void receiveScriptFromRadio(){
         closePins();
       }else if(s.equals("SAD")){
         sendAllDataToGS();
-      }else if(s.equals("STB")){
+      }else */if(s.equals("STB")){
         noTone(PIN_BUZZ);
       }else if(s.equals("FLIGHT_MODE")){
         if(SET_FLIGHT_MODE_ALLOWED){
@@ -629,46 +627,46 @@ void loop(){
   
   
 
-  if(PINSERVO_turning){
-    if(millis() - PINSERVO_startRecord > 400){
-      PINSERVO_turning = false;
-      pwm.setPin(SERVO_PINS, 0);
-    }
-  }
-
-  if(RINGSERVO_turning && !DEPLOY_COMMAND_TRIGGERED){
-    //Serial.println("stopping servo");
-    if(millis() - RINGSERVO_startRecord > 1000){
-      stopRing();
-      if(millis() - RINGSERVO_startRecord > 2000){
-        RINGSERVO_turning = false;
-        pwm.setPin(SERVO_HULL, 0);
-      }
-    }
-  }
-
-  if(DEPLOY_COMMAND_TRIGGERED){
-    if(RINGSERVO_turning){
-      if(millis() - RINGSERVO_startRecord > 1000){
-        stopRing();
-        RINGSERVO_turning = false;
-      }
-    }else{
-      if(millis() - RINGSERVO_startRecord > 1500){
-        openPins();
-        if(millis() - RINGSERVO_startRecord > 2500){
-          DEPLOY_COMMAND_TRIGGERED = false;
-          PINSERVO_turning = false;
-          pwm.setPin(SERVO_HULL, 0);
-          pwm.setPin(SERVO_PINS, 0);
-        }
-      }
-    }
-  }
+//  if(PINSERVO_turning){
+//    if(millis() - PINSERVO_startRecord > 400){
+//      PINSERVO_turning = false;
+//      pwm.setPin(SERVO_PINS, 0);
+//    }
+//  }
+//
+//  if(RINGSERVO_turning && !DEPLOY_COMMAND_TRIGGERED){
+//    //Serial.println("stopping servo");
+//    if(millis() - RINGSERVO_startRecord > 1000){
+//      stopRing();
+//      if(millis() - RINGSERVO_startRecord > 2000){
+//        RINGSERVO_turning = false;
+//        pwm.setPin(SERVO_HULL, 0);
+//      }
+//    }
+//  }
+//
+//  if(DEPLOY_COMMAND_TRIGGERED){
+//    if(RINGSERVO_turning){
+//      if(millis() - RINGSERVO_startRecord > 1000){
+//        stopRing();
+//        RINGSERVO_turning = false;
+//      }
+//    }else{
+//      if(millis() - RINGSERVO_startRecord > 1500){
+//        openPins();
+//        if(millis() - RINGSERVO_startRecord > 2500){
+//          DEPLOY_COMMAND_TRIGGERED = false;
+//          PINSERVO_turning = false;
+//          pwm.setPin(SERVO_HULL, 0);
+//          pwm.setPin(SERVO_PINS, 0);
+//        }
+//      }
+//    }
+//  }
 
   if(Serial.available()){
     String reader = Serial.readString();
-    if(reader.equals("[OPP]")){
+    /*if(reader.equals("[OPP]")){
       openPins();
     }else if(reader.equals("[CLP]")){
       closePins();
@@ -688,7 +686,7 @@ void loop(){
     }else if(reader.equals("[RER]")){
       //removeRing();
       //PINSERVO_angle_close = reader.toInt();
-    }else if(reader.equals("[SAD]")){
+    }else */if(reader.equals("[SAD]")){
       sendAllDataToGS();
     }else {
       Serial.print("{F:WRN,"+reader+" is not a command;}");
@@ -710,11 +708,11 @@ void loop(){
     BMP_altitude = Sensor_BMP.readAltitude(AIRPRESSURE_SEA_LEVEL) + ALTITUDE_CORRECTION;
     if(BMP_altitude >= DEPS_MINIMUM_HEIGHT){
       appMode = FLIGHT_MODE;
-      String toSend = "FLIGHT_MODE";
-      RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
-      RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
-      RHNetwork.waitPacketSent();
-      delay(2500);
+//      String toSend = "FLIGHT_MODE";
+//      RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
+//      RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
+//      RHNetwork.waitPacketSent();
+      delay(2000);
       logStatusFlightMode();
       for(int i = 0; i < 3; ++i){
         delay(100);
@@ -841,13 +839,8 @@ void loop(){
     dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
     dataPointRH += "}";
 
-    RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
-
-    dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
-    dataPointRH += "TS:" + String(millis() - measureTime) + ";";
-    dataPointRH += "AL:" + String(BMP_altitude) + ";}";
+    //RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
-    
     RHNetwork.waitPacketSent();
     //delay(1000);
 
@@ -940,14 +933,14 @@ void loop(){
         }
       }
 
-      if((((DEPS_PASSED_HEIGHT_UP || DEPS_DETECTED_PARABOLA) && DEPS_PASSED_HEIGHT_DOWN) && (BMP_altitude >= DEPS_MINIMUM_HEIGHT) && !DEPS_DEPLOYED)){
-        deployBabyCans();
-        DEPS_DEPLOYED = true;
-        Serial.println("-------------------------DEPLOY!");
-        logStatus("SDP", 2);
-      }else if(DEPS_PASSED_HEIGHT_DOWN){
-        askDeployPermissionGS();
-      }
+//      if((((DEPS_PASSED_HEIGHT_UP || DEPS_DETECTED_PARABOLA) && DEPS_PASSED_HEIGHT_DOWN) && (BMP_altitude >= DEPS_MINIMUM_HEIGHT) && !DEPS_DEPLOYED)){
+//        deployBabyCans();
+//        DEPS_DEPLOYED = true;
+//        Serial.println("-------------------------DEPLOY!");
+//        logStatus("SDP", 2);
+//      }else if(DEPS_PASSED_HEIGHT_DOWN){
+//        askDeployPermissionGS();
+//      }
 
 
 
