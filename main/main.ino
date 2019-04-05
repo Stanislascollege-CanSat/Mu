@@ -173,8 +173,8 @@ unsigned int lastReadSensorTimeRecord;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = 5; /* <----------------------700-------------------------  */
-const int DEPS_MINIMUM_HEIGHT = 2; /* <----------------------200-------------------------  */
+const int DEPS_BORDER_HEIGHT = 700; /* <----------------------700-------------------------  */
+const int DEPS_MINIMUM_HEIGHT = 200; /* <----------------------200-------------------------  */
 bool DEPS_DEPLOYED;
 int prevCheckDeployTime;
 int prevReadBaselinesTime;
@@ -589,10 +589,10 @@ void receiveScriptFromRadio(){
 //          RHNetwork.waitPacketSent();
           delay(5000);
           logStatusFlightMode();
-          // Set T0
-          String Sett = "{F:ST0;}";
-          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
-          RHNetwork.waitPacketSent();
+//          // Set T0
+//          String Sett = "{F:ST0;}";
+//          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
+//          RHNetwork.waitPacketSent();
           for(int i = 0; i < 3; ++i){
             delay(100);
             tone(PIN_BUZZ, 5000 - i*1000);
