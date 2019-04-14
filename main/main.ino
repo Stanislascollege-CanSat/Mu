@@ -173,8 +173,8 @@ unsigned int lastReadSensorTimeRecord;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = 700; /* <----------------------700-------------------------  */
-const int DEPS_MINIMUM_HEIGHT = 200; /* <----------------------200-------------------------  */
+const int DEPS_BORDER_HEIGHT = 6; /* <----------------------700------------------------- CHANGED FOR FRI 5 APR (TEST-DAY)  */
+const int DEPS_MINIMUM_HEIGHT = 2; /* <----------------------200-------------------------  */
 bool DEPS_DEPLOYED;
 int prevCheckDeployTime;
 int prevReadBaselinesTime;

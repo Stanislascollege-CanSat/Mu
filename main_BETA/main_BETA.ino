@@ -515,13 +515,13 @@ void sendAllDataToGS(){
       readPos++;
     }
     Serial.print(sendBuffer);
-    Serial.print("{F:LOG,Fetching;}");
-    RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
-    RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
-    RHNetwork.waitPacketSent();
+    //Serial.print("{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG,Fetching;}");
+//    RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
+//    RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
+//    RHNetwork.waitPacketSent();
   }
   delay(1000);
-  sendBuffer = "{F:LOG," + String(RH_CHANNEL_LOCAL) + "SentAllData;}";
+  sendBuffer = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG," + String(RH_CHANNEL_LOCAL) + "SentAllData;}";
   Serial.print(sendBuffer);
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
