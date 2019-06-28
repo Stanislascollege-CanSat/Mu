@@ -195,6 +195,10 @@ bool RHreading = false;
 String RHreadCommand = "";
 std::vector<String> RHcommandList;
 
+// DATA SYNCHRONIZATION (added @ TUE-JUN-20)
+bool DSRequested = false;
+unsigned int DSCount;
+
 // --------------------------------------------------- //
 // --------------- SETUP FUNCTION -------------------- //
 // --------------------------------------------------- //
@@ -274,14 +278,18 @@ void setup(){
   // --------------- Setting duration timeout for RH_Datagram -------------------- //
   RHNetwork.setTimeout(0);
 
+  RHDriver.setModeIdle();
+
   // --------------- INITIALIZING SENSORS ------------------------ //
 
+  RHDriver.setModeTx();
   delay(1000);
   String sendStartBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:1;}";
   RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
   delay(2000);
+  RHDriver.setModeRx();
 
   // FRAM disk
   if(FRAMDisk.begin()){
@@ -382,9 +390,11 @@ void setup(){
   confirmBoot += "SDP:0;";
   confirmBoot += "F:LOG,ALTITUDE_CORRECTION@" + String(ALTITUDE_CORRECTION) + ";";
   confirmBoot += "}";
+  RHDriver.setModeTx();
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 
   // --------------- Confirming setup charm -------------------- //
   for(int i = 100; i < 4000; i += 5){
@@ -397,6 +407,8 @@ void setup(){
   measureTime = millis();
   prevCheckDeployTime = millis();
   prevReadBaselinesTime = millis();
+
+  DSCount = 0;
 }
 
 // CALCULATE ABSOLUTE HUMIDITY
@@ -465,17 +477,21 @@ uint32_t getAbsoluteHumidity(float temperature, float humidity) {
 //}
 
 void consoleLogGS(String s){
+  RHDriver.setModeTx();
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG," + s + ";}";
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void logStatus(String stat, int val){
+  RHDriver.setModeTx();
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";" + stat + ":" + String(val) + ";}";
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void logStatusFlightMode(){
@@ -523,9 +539,11 @@ void sendAllDataToGS(){
   delay(1000);
   sendBuffer = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG," + String(RH_CHANNEL_LOCAL) + "SentAllData;}";
   Serial.print(sendBuffer);
+  RHDriver.setModeTx();
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void clearFRAMDisk(){
@@ -536,6 +554,7 @@ void clearFRAMDisk(){
 }
 
 void receiveScriptFromRadio(){
+  RHDriver.setModeRx();
   uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
   uint8_t LEN = sizeof(BUF);
   uint8_t FROM_ADDRESS;
@@ -552,7 +571,35 @@ void receiveScriptFromRadio(){
           break;
         case ']':
           RHreading = false;
-          RHcommandList.push_back(RHreadCommand);
+          //RHcommandList.push_back(RHreadCommand);
+              if(RHreadCommand.equals("SAD")){
+                sendAllDataToGS();
+              }else if(RHreadCommand.equals("STB")){
+                noTone(PIN_BUZZ);
+              }else if(RHreadCommand.equals("FLIGHT_MODE")){
+                if(SET_FLIGHT_MODE_ALLOWED){
+                  appMode = FLIGHT_MODE;
+        //          String toSend = "[FLIGHT_MODE]";
+        //          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
+        //          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
+        //          RHNetwork.waitPacketSent();
+                  delay(5000);
+                  logStatusFlightMode();
+                  for(int i = 0; i < 3; ++i){
+                    delay(100);
+                    tone(PIN_BUZZ, 5000 - i*1000);
+                    delay(100);
+                    noTone(PIN_BUZZ);
+                  }
+                  measureTime = millis();
+                }else{
+                  consoleLogGS("You must wait until the scanning is finished");
+                }
+              }else if(RHreadCommand.equals("DSY")){
+                // push data sychronization point
+                DSRequested = true;
+                DSCount++;
+              }
           RHreadCommand = "";
           break;
         default:
@@ -563,7 +610,7 @@ void receiveScriptFromRadio(){
       }
     }
 
-    for(String s : RHcommandList){
+//    for(String s : RHcommandList){
       /*if(s.equals("DEP")){
         deployBabyCans();
         DEPS_DEPLOYED = true;
@@ -577,32 +624,32 @@ void receiveScriptFromRadio(){
         openPins();
       }else if(s.equals("CLP")){
         closePins();
-      }else */if(s.equals("SAD")){
-        sendAllDataToGS();
-      }else if(s.equals("STB")){
-        noTone(PIN_BUZZ);
-      }else if(s.equals("FLIGHT_MODE")){
-        if(SET_FLIGHT_MODE_ALLOWED){
-          appMode = FLIGHT_MODE;
-//          String toSend = "[FLIGHT_MODE]";
-//          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
-//          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
-//          RHNetwork.waitPacketSent();
-          delay(5000);
-          logStatusFlightMode();
-          for(int i = 0; i < 3; ++i){
-            delay(100);
-            tone(PIN_BUZZ, 5000 - i*1000);
-            delay(100);
-            noTone(PIN_BUZZ);
-          }
-          measureTime = millis();
-        }else{
-          consoleLogGS("You must wait until the scanning is finished");
-        }
-      }
-    }
-    RHcommandList.clear();
+//      }else */  /*if(s.equals("SAD")){*/
+//        sendAllDataToGS();
+//      }else if(s.equals("STB")){
+//        noTone(PIN_BUZZ);
+//      }else if(s.equals("FLIGHT_MODE")){
+//        if(SET_FLIGHT_MODE_ALLOWED){
+//          appMode = FLIGHT_MODE;
+////          String toSend = "[FLIGHT_MODE]";
+////          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
+////          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
+////          RHNetwork.waitPacketSent();
+//          delay(5000);
+//          logStatusFlightMode();
+//          for(int i = 0; i < 3; ++i){
+//            delay(100);
+//            tone(PIN_BUZZ, 5000 - i*1000);
+//            delay(100);
+//            noTone(PIN_BUZZ);
+//          }
+//          measureTime = millis();
+//        }else{
+//          consoleLogGS("You must wait until the scanning is finished");
+//        }
+//      }
+//    }
+//    RHcommandList.clear();
   }
 }
 
@@ -727,7 +774,7 @@ void loop(){
         delay(100);
         noTone(PIN_BUZZ);
       }
-      measureTime = millis();
+      //measureTime = millis();
     }
     delay(100);
   }
@@ -738,7 +785,7 @@ void loop(){
 
   
 
-  if((millis() - lastReadSensorTimeRecord >= 1000) && (appMode == FLIGHT_MODE || appMode == LANDED_MODE)){
+  if((millis() - lastReadSensorTimeRecord >= 500)){
     // READING SENSORS
     Sensor_Motion.readSensor();
     if(Sensor_SGP30.IAQmeasure()) {}
@@ -780,7 +827,6 @@ void loop(){
     GPS_altitude = (GPS_fix ? Sensor_GPS.altitude : 0);
     GPS_satellites = (GPS_fix ? Sensor_GPS.satellites : 0);
 
-    FRAM_AMOUNT_MEASUREMENTS++;
 
     //receiveScriptFromRadio();
 
@@ -844,55 +890,83 @@ void loop(){
     dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
     dataPointRH += "O2:" + String(SGP30_CO2) + ";";
     dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
+    if(DSRequested){
+      dataPointRH += "DS:" + String(DSCount) + ";";
+    }
     dataPointRH += "}";
 
+
+    RHDriver.setModeTx();
     //RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
     RHNetwork.waitPacketSent();
     //delay(1000);
+    RHDriver.setModeRx();
 
     //STORED_DATA_POINTS.push_back(dataPointRH);
 
     
-
-    // STORING DATA IN FRAM
-    if(FRAM_AMOUNT_MEASUREMENTS % FRAM_STORE_RATIO == 0){
-      dataPointRH = "{CAN" + String(RH_CHANNEL_LOCAL);
-      dataPointRH += "Ac" + String(IMU_Acc_X) + "," + String(IMU_Acc_Y) + "," + String(IMU_Acc_Z);
-      dataPointRH += "Gy" + String(IMU_Gyro_X) + "," + String(IMU_Gyro_Y) + "," + String(IMU_Gyro_Z);
-      dataPointRH += "Co" + String(IMU_Mag_X) + "," + String(IMU_Mag_Y) + "," + String(IMU_Mag_Z);
-      dataPointRH += "Gp" + String(GPS_longitude, 4) + "," + String(GPS_latitude, 4);
-      dataPointRH += "TS" + String(millis() - startupTime);
-      dataPointRH += "GT" + GPS_timestring;
-      dataPointRH += "AP" + String(BMP_airpressure);
-      dataPointRH += "AT" + String(BMP_temperature, 1);
-      dataPointRH += "AL" + String(BMP_altitude);
-      dataPointRH += "HM" + String(Si7021_humidity);
-      dataPointRH += "OC" + String(SGP30_TVOC);
-      dataPointRH += "O2" + String(SGP30_CO2);
-      dataPointRH += "GH" + String(GPS_altitude);
-      dataPointRH += "GS" + String(GPS_speed);
-      dataPointRH += "GV" + String(GPS_angle);
-      dataPointRH += "G3" + String(GPS_fix);
-      dataPointRH += "GN" + String(GPS_satellites);
-      dataPointRH += "}";
-  
-      for(int i = 0; i < dataPointRH.length(); ++i){
-        if(FRAM_LAST_LOCATION <= 255000){
-          FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH[i]);
-          FRAM_LAST_LOCATION++;
-        }else{
-          consoleLogGS("FRAMDisk is full");
+    if((appMode == FLIGHT_MODE || appMode == LANDED_MODE) || DSRequested){
+      // STORING DATA IN FRAM
+      FRAM_AMOUNT_MEASUREMENTS++;
+      if(FRAM_AMOUNT_MEASUREMENTS % FRAM_STORE_RATIO == 0){
+        dataPointRH = "{CAN" + String(RH_CHANNEL_LOCAL);
+        dataPointRH += "Ac" + String(IMU_Acc_X) + "," + String(IMU_Acc_Y) + "," + String(IMU_Acc_Z);
+        dataPointRH += "Gy" + String(IMU_Gyro_X) + "," + String(IMU_Gyro_Y) + "," + String(IMU_Gyro_Z);
+        dataPointRH += "Co" + String(IMU_Mag_X) + "," + String(IMU_Mag_Y) + "," + String(IMU_Mag_Z);
+        dataPointRH += "Gp" + String(GPS_longitude, 4) + "," + String(GPS_latitude, 4);
+        dataPointRH += "TS" + String(millis() - startupTime);
+        dataPointRH += "GT" + GPS_timestring;
+        dataPointRH += "AP" + String(BMP_airpressure);
+        dataPointRH += "AT" + String(BMP_temperature, 1);
+        dataPointRH += "AL" + String(BMP_altitude);
+        dataPointRH += "HM" + String(Si7021_humidity);
+        dataPointRH += "OC" + String(SGP30_TVOC);
+        dataPointRH += "O2" + String(SGP30_CO2);
+        dataPointRH += "GH" + String(GPS_altitude);
+        dataPointRH += "GS" + String(GPS_speed);
+        dataPointRH += "GV" + String(GPS_angle);
+        dataPointRH += "G3" + String(GPS_fix);
+        dataPointRH += "GN" + String(GPS_satellites);
+        if(DSRequested){
+          dataPointRH += "DS" + String(DSCount);
         }
+        dataPointRH += "}";
+    
+        for(int i = 0; i < dataPointRH.length(); ++i){
+          if(FRAM_LAST_LOCATION <= 255000){
+            FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH[i]);
+            FRAM_LAST_LOCATION++;
+          }else{
+            consoleLogGS("FRAMDisk is full");
+          }
+        }
+    
+        fram_writeLastPosition(FRAM_LAST_LOCATION);
       }
-  
-      fram_writeLastPosition(FRAM_LAST_LOCATION);
     }
 
-    receiveScriptFromRadio();
+    //receiveScriptFromRadio();
     
 
     lastReadSensorTimeRecord = int(millis());
+
+
+    if(DSRequested){
+      tone(PIN_BUZZ, 3000);
+      delay(200);
+      noTone(PIN_BUZZ);
+      delay(100);
+      tone(PIN_BUZZ, 4000);
+      delay(200);
+      noTone(PIN_BUZZ);
+      delay(100);
+      tone(PIN_BUZZ, 5000);
+      delay(200);
+      noTone(PIN_BUZZ);
+    }
+
+    DSRequested = false;
 
   }
 

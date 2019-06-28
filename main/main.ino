@@ -16,7 +16,7 @@
 //  |                               Written by Rens Dur                            |  //
 //  |                                                                              |  //
 //  |                                                                              |  //
-//  |                                                                              |  //
+//  |                             MORGENOCHTEND UPLOADEN                           |  //
 //  |                                                                              |  //
 //  |                                                                              |  //
 //   ------------------------------------------------------------------------------   //
@@ -70,10 +70,10 @@ const unsigned short int SERVO_PINS = 0;
 const unsigned short int SERVO_HULL = 1;
 
 const int PINSERVO_angle_close = 0;    // Close value @50Hz 0
-const int PINSERVO_angle_open = 28;    // Open value @50Hz 28
+const int PINSERVO_angle_open = 50;    // Open value @50Hz 28
 
-const int RINGSERVO_angle_silent = 55;
-const int RINGSERVO_speed = 5;
+int RINGSERVO_angle_silent = 50;
+const int RINGSERVO_speed = 30;
 
 bool DEPLOY_COMMAND_TRIGGERED;
 
@@ -87,6 +87,8 @@ bool PINSERVO_direction;
 
 // RADIO DECLARATION
 RH_RF95 RHDriver(PIN_RH_CS, PIN_RH_INT);
+RH_RF95::ModemConfig RHDriver_ModemConfig = {.reg_1d = RH_RF95_BW_125KHZ, .reg_1e = RH_RF95_SPREADING_FACTOR_4096CPS, .reg_26 = 0x04};
+
 RHReliableDatagram RHNetwork(RHDriver, RH_CHANNEL_LOCAL);
 
 // PWM DECLARATION
@@ -126,10 +128,7 @@ float BMP_airpressure;
 float BMP_altitude;
 float ALTITUDE_CORRECTION;
 float BMP_PREVIOUS_altitudes[] = {0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0,
-                                     0,0,0,0,0,0,0,0,0,0};
+                                  0,0,0,0,0,0,0,0,0,0};
 float CALC_verticalVelocity;
 float CALC_prevVerticalVelocity[] = {0,0,0,0,0,0,0,0,0,0,
                                      0,0,0,0,0,0,0,0,0,0,
@@ -173,11 +172,12 @@ unsigned int lastReadSensorTimeRecord;
 bool DEPS_PASSED_HEIGHT_UP;
 bool DEPS_DETECTED_PARABOLA;
 bool DEPS_PASSED_HEIGHT_DOWN;
-const int DEPS_BORDER_HEIGHT = 6; /* <----------------------700------------------------- CHANGED FOR FRI 5 APR (TEST-DAY)  */
-const int DEPS_MINIMUM_HEIGHT = 2; /* <----------------------200-------------------------  */
+const int DEPS_BORDER_HEIGHT = 700; /* <----------------------700------------------------- CHANGED FOR FRI 5 APR (TEST-DAY)  */
+const int DEPS_MINIMUM_HEIGHT = 200; /* <----------------------200-------------------------  */
 bool DEPS_DEPLOYED;
 int prevCheckDeployTime;
 int prevReadBaselinesTime;
+int DEPS_REDUNDANT_COUNT;
 
 // STATUS STRIGNS
 String RH_INIT = "0";
@@ -194,6 +194,10 @@ std::vector<String> STORED_DATA_POINTS;
 bool RHreading = false;
 String RHreadCommand = "";
 std::vector<String> RHcommandList;
+
+// DATA SYNCHRONIZATION (added @ TUE-JUN-20)
+bool DSRequested = false;
+unsigned int DSCount;
 
 // --------------------------------------------------- //
 // --------------- SETUP FUNCTION -------------------- //
@@ -216,7 +220,7 @@ void setup(){
   pwm.setPWM(SERVO_PINS, 0, map(PINSERVO_angle_close, 0, 180, SERVOMIN, SERVOMAX));
   delay(300);
   pwm.setPin(SERVO_PINS, 0);
-  // open hull
+  // close hull
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent + RINGSERVO_speed, 0, 180, SERVOMIN, SERVOMAX));
   delay(1000);
   pwm.setPWM(SERVO_HULL, 0, map(RINGSERVO_angle_silent, 0, 180, SERVOMIN, SERVOMAX));
@@ -268,15 +272,21 @@ void setup(){
   // --------------- Setting RH_Driver TxPower to 23 (maximum) -------------------- //
   RHDriver.setTxPower(23, false);
 
+  // --------------- Setting RHDriver bandwidth -------------------- //
+  //RHDriver.setModemRegisters(&RHDriver_ModemConfig);
+
   // --------------- Setting #retries for RH_Datagram -------------------- //
   RHNetwork.setRetries(0);
 
   // --------------- Setting duration timeout for RH_Datagram -------------------- //
   RHNetwork.setTimeout(0);
 
+  // --------------- Setting RHDriver to Idle mode ------------------ //
+  RHDriver.setModeIdle();
+
   // --------------- INITIALIZING SENSORS ------------------------ //
 
-  delay(1000);
+  RHDriver.setModeTx();
   String sendStartBoot = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";SBT:1;}";
   RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)sendStartBoot.c_str(), sendStartBoot.length(), RH_CHANNEL_GS_ALPHA);
@@ -378,13 +388,15 @@ void setup(){
   confirmBoot += "SMS:" + SI7021_INIT + ";";
   confirmBoot += "SMG:" + GPS_INIT + ";";
   confirmBoot += "SMR:" + MPU9250_INIT + ";";
-  confirmBoot += "SFM:" + String(appMode) + ";";
+  confirmBoot += "SMU:" + String(appMode) + ";";
   confirmBoot += "SDP:0;";
   confirmBoot += "F:LOG,ALTITUDE_CORRECTION@" + String(ALTITUDE_CORRECTION) + ";";
   confirmBoot += "}";
+  RHDriver.setModeTx();
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)confirmBoot.c_str(), confirmBoot.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 
   // --------------- Confirming setup charm -------------------- //
   for(int i = 100; i < 4000; i += 5){
@@ -397,6 +409,10 @@ void setup(){
   measureTime = millis();
   prevCheckDeployTime = millis();
   prevReadBaselinesTime = millis();
+
+  DSCount = 0;
+
+  DEPS_REDUNDANT_COUNT = 0;
 }
 
 // CALCULATE ABSOLUTE HUMIDITY
@@ -412,6 +428,7 @@ uint32_t getAbsoluteHumidity(float temperature, float humidity) {
 
 void openRing(){
   // TURN THE RING OPEN
+  RINGSERVO_angle_silent = 45;
   if(!RINGSERVO_turning){
     //pwm.setPin(SERVO_HULL, 1);
     //delay(200);
@@ -423,6 +440,7 @@ void openRing(){
 }
 
 void closeRing(){
+  RINGSERVO_angle_silent = 55;
   if(!RINGSERVO_turning){
     //pwm.setPin(SERVO_HULL, 1);
     //delay(200);
@@ -466,16 +484,22 @@ void closeDeploy(){
 
 void consoleLogGS(String s){
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:LOG," + s + ";}";
+  RHDriver.setModeTx();
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void logStatus(String stat, int val){
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";" + stat + ":" + String(val) + ";}";
-  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
-  RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
-  RHNetwork.waitPacketSent();
+  RHDriver.setModeTx();
+  for(int i = 0; i < 3; ++i){
+    RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
+    RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
+    RHNetwork.waitPacketSent();
+  }
+  RHDriver.setModeRx();
 }
 
 void logStatusFlightMode(){
@@ -490,9 +514,11 @@ void logStatusFlightMode(){
 
 void askDeployPermissionGS(){
   String toSend = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";F:ASK;}";
+  RHDriver.setModeTx();
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void fram_writeLastPosition(uint16_t a){
@@ -505,6 +531,7 @@ uint16_t fram_readLastPosition(){
 }
 
 void sendAllDataToGS(){
+  RHDriver.setModeTx();
   uint16_t readPos = FRAM_DATA_BEGIN_LOCATION;
   String sendBuffer = "";
   FRAM_LAST_LOCATION = fram_readLastPosition();
@@ -525,6 +552,7 @@ void sendAllDataToGS(){
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_DELTA);
   RHNetwork.sendtoWait((uint8_t*)sendBuffer.c_str(), sendBuffer.length(), RH_CHANNEL_GS_ALPHA);
   RHNetwork.waitPacketSent();
+  RHDriver.setModeRx();
 }
 
 void clearFRAMDisk(){
@@ -535,6 +563,8 @@ void clearFRAMDisk(){
 }
 
 void receiveScriptFromRadio(){
+  RHDriver.setModeRx();
+  
   uint8_t BUF[RH_RF95_MAX_MESSAGE_LEN] = "";
   uint8_t LEN = sizeof(BUF);
   uint8_t FROM_ADDRESS;
@@ -551,7 +581,52 @@ void receiveScriptFromRadio(){
           break;
         case ']':
           RHreading = false;
-          RHcommandList.push_back(RHreadCommand);
+          //RHcommandList.push_back(RHreadCommand);
+          if(RHreadCommand.equals("DEP")){
+            deployBabyCans();
+            DEPS_DEPLOYED = true;
+            Serial.println("-------------------------DEPLOY!");
+            logStatus("SDP", 2);
+          }else if(RHreadCommand.equals("OPR")){
+            openRing();
+          }else if(RHreadCommand.equals("CLR")){
+            closeRing();
+          }else if(RHreadCommand.equals("OPP")){
+            openPins();
+          }else if(RHreadCommand.equals("CLP")){
+            closePins();
+          }else if(RHreadCommand.equals("SAD")){
+            sendAllDataToGS();
+          }else if(RHreadCommand.equals("STB")){
+            noTone(PIN_BUZZ);
+          }else if(RHreadCommand.equals("FLIGHT_MODE")){
+            if(SET_FLIGHT_MODE_ALLOWED){
+              appMode = FLIGHT_MODE;
+    //          String toSend = "[FLIGHT_MODE]";
+    //          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
+    //          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
+    //          RHNetwork.waitPacketSent();
+              delay(5000);
+              logStatusFlightMode();
+    //          // Set T0
+    //          String Sett = "{F:ST0;}";
+    //          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
+    //          RHNetwork.waitPacketSent();
+              for(int i = 0; i < 3; ++i){
+                delay(100);
+                tone(PIN_BUZZ, 5000 - i*1000);
+                delay(100);
+                noTone(PIN_BUZZ);
+              }
+              measureTime = millis();
+            }else{
+              consoleLogGS("You must wait until the scanning is finished");
+            }
+          }else if(RHreadCommand.equals("DSY")){
+            // push data sychronization point
+            DSRequested = true;
+            DSCount++;
+          }
           RHreadCommand = "";
           break;
         default:
@@ -562,50 +637,50 @@ void receiveScriptFromRadio(){
       }
     }
 
-    for(String s : RHcommandList){
-      if(s.equals("DEP")){
-        deployBabyCans();
-        DEPS_DEPLOYED = true;
-        Serial.println("-------------------------DEPLOY!");
-        logStatus("SDP", 2);
-      }else if(s.equals("OPR")){
-        openRing();
-      }else if(s.equals("CLR")){
-        closeRing();
-      }else if(s.equals("OPP")){
-        openPins();
-      }else if(s.equals("CLP")){
-        closePins();
-      }else if(s.equals("SAD")){
-        sendAllDataToGS();
-      }else if(s.equals("STB")){
-        noTone(PIN_BUZZ);
-      }else if(s.equals("FLIGHT_MODE")){
-        if(SET_FLIGHT_MODE_ALLOWED){
-          appMode = FLIGHT_MODE;
-//          String toSend = "[FLIGHT_MODE]";
-//          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
-//          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
-//          RHNetwork.waitPacketSent();
-          delay(5000);
-          logStatusFlightMode();
-//          // Set T0
-//          String Sett = "{F:ST0;}";
-//          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
-//          RHNetwork.waitPacketSent();
-          for(int i = 0; i < 3; ++i){
-            delay(100);
-            tone(PIN_BUZZ, 5000 - i*1000);
-            delay(100);
-            noTone(PIN_BUZZ);
-          }
-          measureTime = millis();
-        }else{
-          consoleLogGS("You must wait until the scanning is finished");
-        }
-      }
-    }
-    RHcommandList.clear();
+//    for(String s : RHcommandList){
+//      if(s.equals("DEP")){
+//        deployBabyCans();
+//        DEPS_DEPLOYED = true;
+//        Serial.println("-------------------------DEPLOY!");
+//        logStatus("SDP", 2);
+//      }else if(s.equals("OPR")){
+//        openRing();
+//      }else if(s.equals("CLR")){
+//        closeRing();
+//      }else if(s.equals("OPP")){
+//        openPins();
+//      }else if(s.equals("CLP")){
+//        closePins();
+//      }else if(s.equals("SAD")){
+//        sendAllDataToGS();
+//      }else if(s.equals("STB")){
+//        noTone(PIN_BUZZ);
+//      }else if(s.equals("FLIGHT_MODE")){
+//        if(SET_FLIGHT_MODE_ALLOWED){
+//          appMode = FLIGHT_MODE;
+////          String toSend = "[FLIGHT_MODE]";
+////          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
+////          RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
+////          RHNetwork.waitPacketSent();
+//          delay(5000);
+//          logStatusFlightMode();
+////          // Set T0
+////          String Sett = "{F:ST0;}";
+////          RHNetwork.sendtoWait((uint8_t*)Sett.c_str(), Sett.length(), RH_CHANNEL_GS_DELTA);
+////          RHNetwork.waitPacketSent();
+//          for(int i = 0; i < 3; ++i){
+//            delay(100);
+//            tone(PIN_BUZZ, 5000 - i*1000);
+//            delay(100);
+//            noTone(PIN_BUZZ);
+//          }
+//          measureTime = millis();
+//        }else{
+//          consoleLogGS("You must wait until the scanning is finished");
+//        }
+//      }
+//    }
+    //RHcommandList.clear();
   }
 }
 
@@ -667,6 +742,10 @@ void loop(){
           PINSERVO_turning = false;
           pwm.setPin(SERVO_HULL, 0);
           pwm.setPin(SERVO_PINS, 0);
+          DEPS_REDUNDANT_COUNT++;
+          if(DEPS_REDUNDANT_COUNT < 5){
+            deployBabyCans();
+          }
         }
       }
     }
@@ -719,9 +798,11 @@ void loop(){
     if(BMP_altitude >= DEPS_MINIMUM_HEIGHT){
       appMode = FLIGHT_MODE;
       String toSend = "[FLIGHT_MODE]";
+      RHDriver.setModeTx();
       RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_BETA);
       RHNetwork.sendtoWait((uint8_t*)toSend.c_str(), toSend.length(), RH_CHANNEL_RHO);
       RHNetwork.waitPacketSent();
+      RHDriver.setModeRx();
       delay(2500);
       logStatusFlightMode();
       for(int i = 0; i < 3; ++i){
@@ -730,7 +811,7 @@ void loop(){
         delay(100);
         noTone(PIN_BUZZ);
       }
-      measureTime = millis();
+      //measureTime = millis();
     }
     delay(100);
   }
@@ -741,7 +822,7 @@ void loop(){
 
 
 
-  if((millis() - lastReadSensorTimeRecord >= 1000) && (appMode == FLIGHT_MODE || appMode == LANDED_MODE)){
+  if((millis() - lastReadSensorTimeRecord >= 100) && SET_FLIGHT_MODE_ALLOWED){
     // READING SENSORS
     Sensor_Motion.readSensor();
     if(Sensor_SGP30.IAQmeasure()) {}
@@ -782,8 +863,6 @@ void loop(){
     GPS_angle = (GPS_fix ? Sensor_GPS.angle : 0);
     GPS_altitude = (GPS_fix ? Sensor_GPS.altitude : 0);
     GPS_satellites = (GPS_fix ? Sensor_GPS.satellites : 0);
-
-    FRAM_AMOUNT_MEASUREMENTS++;
 
     //receiveScriptFromRadio();
 
@@ -847,61 +926,91 @@ void loop(){
     dataPointRH += "OC:" + String(SGP30_TVOC) + ";";
     dataPointRH += "O2:" + String(SGP30_CO2) + ";";
     dataPointRH += "BV:" + String(analogRead(PIN_A_BAT)*2*3.3/1024) + ";";
+    if(DSRequested){
+      dataPointRH += "DS:" + String(DSCount) + ";";
+    }
     dataPointRH += "}";
 
+    RHDriver.setModeTx();
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_DELTA);
 
     dataPointRH = "{CAN:" + String(RH_CHANNEL_LOCAL) + ";";
     dataPointRH += "TS:" + String(millis() - measureTime) + ";";
+    dataPointRH += "GA:" + String(GPS_latitude, 4) + ";";
+    dataPointRH += "GO:" + String(GPS_longitude, 4) + ";";
+    dataPointRH += "CX:" + String(IMU_Mag_X) + ";";
+    dataPointRH += "CY:" + String(IMU_Mag_Y) + ";";
+    dataPointRH += "CZ:" + String(IMU_Mag_Z) + ";";
     dataPointRH += "AL:" + String(BMP_altitude) + ";}";
     RHNetwork.sendtoWait((uint8_t*)dataPointRH.c_str(), dataPointRH.length(), RH_CHANNEL_GS_ALPHA);
 
     RHNetwork.waitPacketSent();
+    RHDriver.setModeRx();
     //delay(1000);
 
     //STORED_DATA_POINTS.push_back(dataPointRH);
 
 
-
-    // STORING DATA IN FRAM
-    if(FRAM_AMOUNT_MEASUREMENTS % FRAM_STORE_RATIO == 0){
-      dataPointRH = "{CAN" + String(RH_CHANNEL_LOCAL);
-      dataPointRH += "Ac" + String(IMU_Acc_X) + "," + String(IMU_Acc_Y) + "," + String(IMU_Acc_Z);
-      dataPointRH += "Gy" + String(IMU_Gyro_X) + "," + String(IMU_Gyro_Y) + "," + String(IMU_Gyro_Z);
-      dataPointRH += "Co" + String(IMU_Mag_X) + "," + String(IMU_Mag_Y) + "," + String(IMU_Mag_Z);
-      dataPointRH += "Gp" + String(GPS_longitude, 4) + "," + String(GPS_latitude, 4);
-      dataPointRH += "TS" + String(millis() - startupTime);
-      dataPointRH += "GT" + GPS_timestring;
-      dataPointRH += "AP" + String(BMP_airpressure);
-      dataPointRH += "AT" + String(BMP_temperature, 1);
-      dataPointRH += "AL" + String(BMP_altitude);
-      dataPointRH += "HM" + String(Si7021_humidity);
-      dataPointRH += "OC" + String(SGP30_TVOC);
-      dataPointRH += "O2" + String(SGP30_CO2);
-      dataPointRH += "GH" + String(GPS_altitude);
-      dataPointRH += "GS" + String(GPS_speed);
-      dataPointRH += "GV" + String(GPS_angle);
-      dataPointRH += "G3" + String(GPS_fix);
-      dataPointRH += "GN" + String(GPS_satellites);
-      dataPointRH += "}";
-
-      for(int i = 0; i < dataPointRH.length(); ++i){
-        if(FRAM_LAST_LOCATION <= 255000){
-          FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH[i]);
-          FRAM_LAST_LOCATION++;
-        }else{
-          consoleLogGS("FRAMDisk is full");
+    if((appMode == FLIGHT_MODE || appMode == LANDED_MODE) || DSRequested){
+      // STORING DATA IN FRAM
+      FRAM_AMOUNT_MEASUREMENTS++;
+      if(FRAM_AMOUNT_MEASUREMENTS % FRAM_STORE_RATIO == 0){
+        dataPointRH = "{CAN" + String(RH_CHANNEL_LOCAL);
+        dataPointRH += "Ac" + String(IMU_Acc_X) + "," + String(IMU_Acc_Y) + "," + String(IMU_Acc_Z);
+        dataPointRH += "Gy" + String(IMU_Gyro_X) + "," + String(IMU_Gyro_Y) + "," + String(IMU_Gyro_Z);
+        dataPointRH += "Co" + String(IMU_Mag_X) + "," + String(IMU_Mag_Y) + "," + String(IMU_Mag_Z);
+        dataPointRH += "Gp" + String(GPS_longitude, 4) + "," + String(GPS_latitude, 4);
+        dataPointRH += "TS" + String(millis() - startupTime);
+        dataPointRH += "GT" + GPS_timestring;
+        dataPointRH += "AP" + String(BMP_airpressure);
+        dataPointRH += "AT" + String(BMP_temperature, 1);
+        dataPointRH += "AL" + String(BMP_altitude);
+        dataPointRH += "HM" + String(Si7021_humidity);
+        dataPointRH += "OC" + String(SGP30_TVOC);
+        dataPointRH += "O2" + String(SGP30_CO2);
+        dataPointRH += "GH" + String(GPS_altitude);
+        dataPointRH += "GS" + String(GPS_speed);
+        dataPointRH += "GV" + String(GPS_angle);
+        dataPointRH += "G3" + String(GPS_fix);
+        dataPointRH += "GN" + String(GPS_satellites);
+        if(DSRequested){
+          dataPointRH += "DS" + String(DSCount);
         }
+        dataPointRH += "}";
+  
+        for(int i = 0; i < dataPointRH.length(); ++i){
+          if(FRAM_LAST_LOCATION <= 255000){
+            FRAMDisk.write8(FRAM_LAST_LOCATION, (uint8_t)dataPointRH[i]);
+            FRAM_LAST_LOCATION++;
+          }else{
+            consoleLogGS("FRAMDisk is full");
+          }
+        }
+  
+        fram_writeLastPosition(FRAM_LAST_LOCATION);
       }
-
-      fram_writeLastPosition(FRAM_LAST_LOCATION);
     }
 
-    receiveScriptFromRadio();
+    //receiveScriptFromRadio();
 
 
     lastReadSensorTimeRecord = int(millis());
 
+    if(DSRequested){
+      tone(PIN_BUZZ, 3000);
+      delay(200);
+      noTone(PIN_BUZZ);
+      delay(100);
+      tone(PIN_BUZZ, 4000);
+      delay(200);
+      noTone(PIN_BUZZ);
+      delay(100);
+      tone(PIN_BUZZ, 5000);
+      delay(200);
+      noTone(PIN_BUZZ);
+    }
+
+    DSRequested = false;
   }
 
 
@@ -922,19 +1031,58 @@ void loop(){
 
       if(DEPS_PASSED_HEIGHT_DOWN && (BMP_altitude <= DEPS_MINIMUM_HEIGHT && (CALC_verticalVelocity >= -1 && CALC_verticalVelocity <= 1))){
         appMode = LANDED_MODE;
+        logStatusFlightMode();
         tone(PIN_BUZZ, 4000);
       }
 
-      for(int i = 0; i < sizeof(BMP_PREVIOUS_altitudes)/sizeof(float); ++i){
-        if(BMP_PREVIOUS_altitudes[i] < DEPS_BORDER_HEIGHT && BMP_altitude > DEPS_BORDER_HEIGHT){
-          // CanSat passed DEPS_BORDER_HEIGHT border with upwards velocity
+//      for(int i = 0; i < sizeof(BMP_PREVIOUS_altitudes)/sizeof(float); ++i){
+//        if(BMP_PREVIOUS_altitudes[i] < DEPS_BORDER_HEIGHT && BMP_altitude > DEPS_BORDER_HEIGHT){
+//          // CanSat passed DEPS_BORDER_HEIGHT border with upwards velocity
+//          DEPS_PASSED_HEIGHT_UP = true;
+//          Serial.println("-------------------------PASSED UP!");
+//        }else if(BMP_PREVIOUS_altitudes[i] > DEPS_BORDER_HEIGHT*0.8 && BMP_altitude < DEPS_BORDER_HEIGHT*0.8){
+//          // CanSat passed DEPS_BORDER_HEIGHT border with downwards velocity
+//          DEPS_PASSED_HEIGHT_DOWN = true;
+//          Serial.println("-------------------------PASSED DOWN!");
+//        }
+//      }
+
+      float part_first_half_below = 0;
+      float part_first_half_above = 0;
+
+      for(int i = 0; i < (sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2; ++i){
+        if(BMP_PREVIOUS_altitudes[i] < DEPS_BORDER_HEIGHT){
+          part_first_half_below += 100/(sizeof(BMP_PREVIOUS_altitudes)/sizeof(float)/2);
+        }
+      }
+      for(int i = (sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2; i < sizeof(BMP_PREVIOUS_altitudes)/sizeof(float); ++i){
+        if(BMP_PREVIOUS_altitudes[i] > DEPS_BORDER_HEIGHT){
+          part_first_half_above += 100/((sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2);
+        }
+      }
+      if(part_first_half_below > 45 && part_first_half_above > 45){
+        // CanSat passed DEPS_BORDER_HEIGHT border with upwards velocity
           DEPS_PASSED_HEIGHT_UP = true;
           Serial.println("-------------------------PASSED UP!");
-        }else if(BMP_PREVIOUS_altitudes[i] > DEPS_BORDER_HEIGHT && BMP_altitude < DEPS_BORDER_HEIGHT){
-          // CanSat passed DEPS_BORDER_HEIGHT border with downwards velocity
+      }
+
+      part_first_half_below = 0;
+      part_first_half_above = 0;
+
+      for(int i = 0; i < (sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2; ++i){
+        if(BMP_PREVIOUS_altitudes[i] > DEPS_BORDER_HEIGHT*0.9){
+          part_first_half_above += 100/(sizeof(BMP_PREVIOUS_altitudes)/sizeof(float)/2);
+        }
+      }
+      for(int i = (sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2; i < sizeof(BMP_PREVIOUS_altitudes)/sizeof(float); ++i){
+        if(BMP_PREVIOUS_altitudes[i] < DEPS_BORDER_HEIGHT*0.9){
+          part_first_half_below += 100/((sizeof(BMP_PREVIOUS_altitudes)/sizeof(float))/2);
+        }
+      }
+      if(part_first_half_below > 45 && part_first_half_above > 45){
+//          // CanSat passed DEPS_BORDER_HEIGHT border with downwards velocity
           DEPS_PASSED_HEIGHT_DOWN = true;
           Serial.println("-------------------------PASSED DOWN!");
-        }
       }
 
       for(int i = 0; i < sizeof(CALC_prevVerticalVelocity)/sizeof(float); ++i){
@@ -949,13 +1097,17 @@ void loop(){
       }
 
       if((((DEPS_PASSED_HEIGHT_UP || DEPS_DETECTED_PARABOLA) && DEPS_PASSED_HEIGHT_DOWN) && (BMP_altitude >= DEPS_MINIMUM_HEIGHT) && !DEPS_DEPLOYED)){
+        DEPS_REDUNDANT_COUNT = 0;
         deployBabyCans();
-        DEPS_DEPLOYED = true;
-        Serial.println("-------------------------DEPLOY!");
-        logStatus("SDP", 2);
-      }else if(DEPS_PASSED_HEIGHT_DOWN){
         askDeployPermissionGS();
+        DEPS_DEPLOYED = true;
+        //Serial.println("-------------------------DEPLOY!");
+        logStatus("SDP", 2);
+        tone(PIN_BUZZ, 5500);
       }
+//      else if(DEPS_PASSED_HEIGHT_DOWN){
+//        askDeployPermissionGS();
+//      }
 
 
 
